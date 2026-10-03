@@ -1,10 +1,15 @@
 /* =========================================================
    DIGITAL FUNK ACADEMY
-   FUNKALPHABET TRAINER
-   VERSION 4.1
-   ========================================================= */
+   FUNKALPHABET TRAINER V5.0
+========================================================= */
+
+
+/* =========================================================
+   ALPHABET DATEN
+========================================================= */
 
 const DATA = {
+
     nato: [
         ["A", "Alpha"],
         ["B", "Bravo"],
@@ -71,32 +76,12 @@ const DATA = {
 
 /* =========================================================
    SPEICHER
-   ========================================================= */
+========================================================= */
 
-const STORAGE_KEY = "funkalphabet-trainer-v41";
+const STORAGE_KEY = "funkalphabet-trainer-v50";
 
-let state = {
-    training: {
-        mode: "nato",
 
-        // WICHTIG:
-        // Training IMMER Buchstabe -> Funkwort
-        direction: "letter",
-
-        source: "all",
-        index: 0,
-
-        score: 0,
-        correct: 0,
-        attempts: 0,
-
-        solved: [],
-
-        errors: {},
-        streaks: {},
-
-        answered: false
-    },
+const DEFAULT_STATE = {
 
     stats: {
         natoAttempts: 0,
@@ -108,14 +93,91 @@ let state = {
         exams: 0,
 
         history: []
+    },
+
+
+    training: {
+
+        mode: "nato",
+
+        source: "all",
+
+        index: 0,
+
+        score: 0,
+
+        correct: 0,
+
+        attempts: 0,
+
+        answered: false,
+
+
+        /*
+            WICHTIG:
+
+            Fehler werden nach Alphabet getrennt gespeichert.
+
+            NATO:
+            errors.nato
+
+            Deutsch:
+            errors.deutsch
+        */
+
+        errors: {
+
+            nato: {},
+
+            deutsch: {}
+        },
+
+
+        /*
+            Für jeden Fehler wird die
+            aktuelle 3er-Serie gespeichert.
+        */
+
+        progress: {
+
+            nato: {},
+
+            deutsch: {}
+        }
+    },
+
+
+    exam: {
+
+        mode: "nato",
+
+        count: 10,
+
+        index: 0,
+
+        questions: [],
+
+        correct: 0,
+
+        wrong: 0,
+
+        answers: [],
+
+        answered: false,
+
+        startTime: null
     }
 };
 
 
-function saveState() {
-    localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(state)
+/* =========================================================
+   HILFSFUNKTIONEN
+========================================================= */
+
+function deepClone(object) {
+
+    return JSON.parse(
+        JSON.stringify(object)
     );
 }
 
@@ -125,109 +187,240 @@ function loadState() {
     try {
 
         const saved =
-            localStorage.getItem(STORAGE_KEY);
+            JSON.parse(
+                localStorage.getItem(STORAGE_KEY)
+            );
 
-        if (!saved) return;
 
-        const parsed = JSON.parse(saved);
+        if (!saved) {
 
-        if (parsed.training) {
-            state.training = {
-                ...state.training,
-                ...parsed.training
-            };
+            return deepClone(DEFAULT_STATE);
         }
 
-        if (parsed.stats) {
-            state.stats = {
-                ...state.stats,
-                ...parsed.stats
-            };
-        }
+
+        const state =
+            deepClone(DEFAULT_STATE);
+
+
+        Object.assign(
+            state.stats,
+            saved.stats || {}
+        );
+
+
+        Object.assign(
+            state.training,
+            saved.training || {}
+        );
+
+
+        state.training.errors =
+            Object.assign(
+                {
+                    nato: {},
+                    deutsch: {}
+                },
+                saved.training?.errors || {}
+            );
+
+
+        state.training.progress =
+            Object.assign(
+                {
+                    nato: {},
+                    deutsch: {}
+                },
+                saved.training?.progress || {}
+            );
+
+
+        return state;
 
     } catch (error) {
 
-        console.warn(
-            "Speicher konnte nicht geladen werden.",
+        console.error(
+            "Speicher konnte nicht geladen werden:",
             error
         );
 
+        return deepClone(DEFAULT_STATE);
+    }
+}
+
+
+let state = loadState();
+
+
+function saveState() {
+
+    localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(state)
+    );
+}
+
+
+function normalize(value) {
+
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+}
+
+
+function getCurrentData() {
+
+    return DATA[state.training.mode];
+}
+
+
+function getErrorMap(mode) {
+
+    return state.training.errors[mode];
+}
+
+
+function getProgressMap(mode) {
+
+    return state.training.progress[mode];
+}
+
+
+function calculateAccuracy(
+    attempts,
+    correct
+) {
+
+    if (!attempts) {
+
+        return 0;
     }
 
-    // Sicherheit:
-    // Training niemals Funkwort -> Buchstabe
-    state.training.direction = "letter";
+    return Math.round(
+        correct / attempts * 100
+    );
+}
+
+
+function getOpenErrorCount() {
+
+    return (
+        Object.keys(
+            state.training.errors.nato
+        ).length
+
+        +
+
+        Object.keys(
+            state.training.errors.deutsch
+        ).length
+    );
+}
+
+
+function escapeHTML(value) {
+
+    return String(value)
+        .replace(
+            /[&<>"']/g,
+            character => {
+
+                const replacements = {
+
+                    "&": "&amp;",
+                    "<": "&lt;",
+                    ">": "&gt;",
+                    '"': "&quot;",
+                    "'": "&#039;"
+                };
+
+                return replacements[
+                    character
+                ];
+            }
+        );
 }
 
 
 /* =========================================================
-   HILFSFUNKTIONEN
-   ========================================================= */
+   SEITENNAVIGATION
+========================================================= */
 
-function getData(mode) {
-    return DATA[mode] || DATA.nato;
-}
-
-
-function normalize(text) {
-
-    return String(text || "")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, " ");
-}
-
-
-function getPageElement(name) {
-
-    if (name === "stats") {
-        return document.getElementById("statsPage");
-    }
-
-    return document.getElementById(name);
-}
-
-
-function showPage(name) {
+function showPage(page) {
 
     document
         .querySelectorAll(".page")
-        .forEach(page => {
-            page.classList.remove("active");
+        .forEach(section => {
+
+            section.classList.remove(
+                "active"
+            );
         });
 
-    const target = getPageElement(name);
+
+    const pageID =
+        page === "stats"
+            ? "statsPage"
+            : page;
+
+
+    const target =
+        document.getElementById(
+            pageID
+        );
+
 
     if (target) {
-        target.classList.add("active");
+
+        target.classList.add(
+            "active"
+        );
     }
 
+
     document
-        .querySelectorAll(".nav-btn")
+        .querySelectorAll(
+            "nav button"
+        )
         .forEach(button => {
 
             button.classList.toggle(
                 "active",
-                button.dataset.page === name
+                button.dataset.page === page
             );
-
         });
 
-    if (name === "learn") {
+
+    document
+        .getElementById("mainNav")
+        ?.classList.remove("open");
+
+
+    if (page === "home") {
+
+        renderHome();
+    }
+
+
+    if (page === "learn") {
+
         renderLearn();
     }
 
-    if (name === "training") {
+
+    if (page === "training") {
+
         renderTraining();
     }
 
-    if (name === "stats") {
+
+    if (page === "stats") {
+
         renderStats();
     }
 
-    if (name === "exam") {
-        renderExam();
-    }
 
     window.scrollTo({
         top: 0,
@@ -237,8 +430,53 @@ function showPage(name) {
 
 
 /* =========================================================
+   STARTSEITE
+========================================================= */
+
+function renderHome() {
+
+    const natoAccuracy =
+        calculateAccuracy(
+            state.stats.natoAttempts,
+            state.stats.natoCorrect
+        );
+
+
+    const germanAccuracy =
+        calculateAccuracy(
+            state.stats.deutschAttempts,
+            state.stats.deutschCorrect
+        );
+
+
+    document.getElementById(
+        "homeNatoAccuracy"
+    ).textContent =
+        natoAccuracy + "%";
+
+
+    document.getElementById(
+        "homeGermanAccuracy"
+    ).textContent =
+        germanAccuracy + "%";
+
+
+    document.getElementById(
+        "homeErrorCount"
+    ).textContent =
+        getOpenErrorCount();
+
+
+    document.getElementById(
+        "homeExamCount"
+    ).textContent =
+        state.stats.exams;
+}
+
+
+/* =========================================================
    LERNEN
-   ========================================================= */
+========================================================= */
 
 let learnMode = "nato";
 
@@ -246,93 +484,111 @@ let learnMode = "nato";
 function renderLearn() {
 
     const grid =
-        document.getElementById("learnGrid");
+        document.getElementById(
+            "learnGrid"
+        );
 
-    if (!grid) return;
 
-    const data = getData(learnMode);
+    if (!grid) {
 
-    grid.innerHTML = "";
+        return;
+    }
 
-    data.forEach(item => {
 
-        const card =
-            document.createElement("div");
+    document
+        .querySelectorAll(
+            "[data-learn-mode]"
+        )
+        .forEach(button => {
 
-        card.className = "alphabet-card";
+            button.classList.toggle(
+                "active",
+                button.dataset.learnMode ===
+                learnMode
+            );
+        });
 
-        card.innerHTML = `
-            <div class="alphabet-letter">
-                ${item[0]}
-            </div>
 
-            <div class="alphabet-word">
-                ${item[1]}
-            </div>
-        `;
+    grid.innerHTML =
+        DATA[learnMode]
+            .map(
+                (item, index) => {
 
-        grid.appendChild(card);
-    });
+                    return `
+                        <div class="alphabet-item">
+
+                            <div class="letter">
+                                ${escapeHTML(item[0])}
+                            </div>
+
+                            <div class="word">
+                                ${escapeHTML(item[1])}
+                            </div>
+
+                            <div class="number">
+                                ${String(index + 1).padStart(2, "0")}
+                                /
+                                ${DATA[learnMode].length}
+                            </div>
+
+                        </div>
+                    `;
+                }
+            )
+            .join("");
 }
 
 
 /* =========================================================
    TRAINING
-   ========================================================= */
-
-/*
-    WICHTIG:
-
-    Training besitzt KEINE Richtungsauswahl.
-
-    Es gibt ausschließlich:
-
-    BUCHSTABE -> FUNKWORT
-*/
-
+========================================================= */
 
 function getTrainingPool() {
 
     const data =
-        getData(state.training.mode);
+        getCurrentData();
+
+
+    /*
+        Normales Training:
+
+        komplettes aktuell ausgewähltes
+        Alphabet.
+    */
 
     if (
-        state.training.source === "errors"
+        state.training.source ===
+        "all"
     ) {
 
-        const errors =
-            Object.keys(state.training.errors);
-
-        const pool =
-            data.filter(item =>
-                errors.includes(item[0])
-            );
-
-        // Falls keine Fehler vorhanden sind,
-        // bleibt die Liste leer.
-        return pool;
+        return data;
     }
 
-    return data;
-}
+
+    /*
+        Fehlertraining:
+
+        NUR Fehler aus dem aktuell
+        ausgewählten Alphabet.
+
+        Dadurch kann ein NATO-Fehler
+        niemals als deutscher Fehler
+        erscheinen.
+    */
+
+    const errors =
+        getErrorMap(
+            state.training.mode
+        );
 
 
-function getCurrentTrainingItem() {
-
-    const pool =
-        getTrainingPool();
-
-    if (!pool.length) {
-        return null;
-    }
-
-    if (
-        state.training.index >= pool.length
-    ) {
-        state.training.index = 0;
-    }
-
-    return pool[state.training.index];
+    return data.filter(
+        item =>
+            Object.prototype.hasOwnProperty.call(
+                errors,
+                item[0]
+            )
+    );
 }
 
 
@@ -341,271 +597,297 @@ function renderTraining() {
     const pool =
         getTrainingPool();
 
-    const prompt =
-        document.getElementById("trainingPrompt");
 
-    const input =
-        document.getElementById("trainingInput");
-
-    const button =
-        document.getElementById("trainingAnswerBtn");
-
-    const feedback =
-        document.getElementById("trainingFeedback");
-
-    const modeLabel =
-        document.getElementById("trainingModeLabel");
-
-    const directionLabel =
-        document.getElementById("trainingDirectionLabel");
-
-    const progress =
-        document.getElementById("trainingProgress");
-
-    const errorBadge =
-        document.getElementById("trainingErrorBadge");
-
-    const score =
-        document.getElementById("trainingScore");
-
-    const correct =
-        document.getElementById("trainingCorrect");
-
-    const attempts =
-        document.getElementById("trainingAttempts");
+    document.getElementById(
+        "trainingModeLabel"
+    ).textContent =
+        state.training.mode === "nato"
+            ? "NATO"
+            : "DEUTSCH";
 
 
-    // Richtung immer fest setzen
-    state.training.direction = "letter";
+    document.getElementById(
+        "trainingSourceLabel"
+    ).textContent =
+        state.training.source === "errors"
+            ? "FEHLER LERNEN"
+            : "ALLE BUCHSTABEN";
 
 
-    if (modeLabel) {
+    document
+        .querySelectorAll(
+            "[data-training-mode]"
+        )
+        .forEach(button => {
 
-        modeLabel.textContent =
-            state.training.mode === "nato"
-                ? "NATO"
-                : "DEUTSCH";
-    }
-
-
-    if (directionLabel) {
-
-        directionLabel.textContent =
-            "BUCHSTABE → FUNKWORT";
-    }
+            button.classList.toggle(
+                "active",
+                button.dataset.trainingMode ===
+                state.training.mode
+            );
+        });
 
 
-    if (score) {
-        score.textContent =
-            state.training.score;
-    }
+    document
+        .getElementById(
+            "normalTrainingBtn"
+        )
+        .classList.toggle(
+            "active",
+            state.training.source === "all"
+        );
 
 
-    if (correct) {
-        correct.textContent =
-            state.training.correct;
-    }
+    document
+        .getElementById(
+            "errorTrainingBtn"
+        )
+        .classList.toggle(
+            "active",
+            state.training.source === "errors"
+        );
 
 
-    if (attempts) {
-        attempts.textContent =
-            state.training.attempts;
-    }
+    const badge =
+        document.getElementById(
+            "trainingErrorBadge"
+        );
 
+
+    badge.classList.toggle(
+        "hidden",
+        state.training.source !== "errors"
+    );
+
+
+    /*
+        Keine Fehler vorhanden.
+    */
 
     if (!pool.length) {
 
-        if (prompt) {
-            prompt.textContent =
-                "KEINE FEHLER VORHANDEN";
-        }
+        document.getElementById(
+            "trainingPrompt"
+        ).textContent = "✓";
 
-        if (input) {
-            input.value = "";
-            input.disabled = true;
-        }
 
-        if (button) {
-            button.textContent = "TRAINING STARTEN";
-            button.disabled = false;
-        }
+        document.getElementById(
+            "trainingProgress"
+        ).textContent = "0 / 0";
 
-        if (feedback) {
-            feedback.textContent =
-                "Du hast aktuell keine gespeicherten Fehler.";
-            feedback.className =
-                "training-feedback success";
-        }
 
-        if (errorBadge) {
-            errorBadge.textContent = "0 FEHLER";
-        }
+        const feedback =
+            document.getElementById(
+                "trainingFeedback"
+            );
 
-        if (progress) {
-            progress.style.width = "0%";
-        }
+
+        feedback.textContent =
+            "Keine offenen Fehler vorhanden.";
+
+
+        feedback.className =
+            "feedback good";
+
+
+        document.getElementById(
+            "trainingInput"
+        ).value = "";
+
+
+        document.getElementById(
+            "trainingInput"
+        ).disabled = true;
+
+
+        const button =
+            document.getElementById(
+                "trainingAnswerBtn"
+            );
+
+
+        button.disabled = true;
+
+        button.textContent =
+            "KEINE FEHLER";
+
 
         return;
     }
 
 
+    document.getElementById(
+        "trainingInput"
+    ).disabled = false;
+
+
+    document.getElementById(
+        "trainingAnswerBtn"
+    ).disabled = false;
+
+
+    if (
+        state.training.index >=
+        pool.length
+    ) {
+
+        state.training.index = 0;
+    }
+
+
     const item =
-        getCurrentTrainingItem();
-
-    if (!item) return;
-
-
-    if (prompt) {
-
-        prompt.textContent =
-            item[0];
-    }
+        pool[
+            state.training.index
+        ];
 
 
-    if (errorBadge) {
-
-        const count =
-            state.training.errors[item[0]] || 0;
-
-        const streak =
-            state.training.streaks[item[0]] || 0;
-
-        if (count > 0) {
-
-            errorBadge.textContent =
-                `FEHLER · ${streak}/3 RICHTIG`;
-
-            errorBadge.classList.add("visible");
-
-        } else {
-
-            errorBadge.textContent = "";
-            errorBadge.classList.remove("visible");
-        }
-    }
+    document.getElementById(
+        "trainingPrompt"
+    ).textContent =
+        item[0];
 
 
-    if (input) {
-
-        input.disabled = false;
-
-        if (!state.training.answered) {
-            input.value = "";
-        }
-
-        setTimeout(() => {
-            if (
-                document.activeElement !== input &&
-                !input.disabled
-            ) {
-                input.focus();
-            }
-        }, 50);
-    }
+    document.getElementById(
+        "trainingProgress"
+    ).textContent =
+        `${state.training.index + 1} / ${pool.length}`;
 
 
-    if (button) {
-
-        button.disabled = false;
-
-        button.textContent =
-            state.training.answered
-                ? "NÄCHSTER BUCHSTABE"
-                : "ANTWORT PRÜFEN";
-    }
+    document.getElementById(
+        "trainingScore"
+    ).textContent =
+        state.training.score;
 
 
-    if (feedback) {
-
-        if (!state.training.answered) {
-
-            feedback.textContent = "";
-            feedback.className =
-                "training-feedback";
-
-        }
-
-    }
+    document.getElementById(
+        "trainingCorrect"
+    ).textContent =
+        state.training.correct;
 
 
-    if (progress) {
+    document.getElementById(
+        "trainingAttempts"
+    ).textContent =
+        state.training.attempts;
 
-        const percent =
-            ((state.training.index + 1) /
-                pool.length) * 100;
 
-        progress.style.width =
-            `${percent}%`;
-    }
+    document.getElementById(
+        "trainingInput"
+    ).value = "";
+
+
+    const feedback =
+        document.getElementById(
+            "trainingFeedback"
+        );
+
+
+    feedback.textContent = "";
+
+    feedback.className =
+        "feedback";
+
+
+    document.getElementById(
+        "trainingAnswerBtn"
+    ).textContent =
+        state.training.answered
+            ? "NÄCHSTER BUCHSTABE"
+            : "ANTWORT SENDEN";
+
+
+    setTimeout(() => {
+
+        document
+            .getElementById(
+                "trainingInput"
+            )
+            ?.focus();
+
+    }, 30);
 }
 
+
+/* =========================================================
+   TRAINING ANTWORT
+========================================================= */
 
 function answerTraining() {
 
     const pool =
         getTrainingPool();
 
+
     if (!pool.length) {
+
         return;
     }
 
 
-    // Wenn bereits beantwortet wurde:
-    // zum nächsten Buchstaben.
-    if (state.training.answered) {
+    /*
+        Wenn bereits beantwortet:
 
-        nextTrainingItem();
+        nächster Buchstabe.
+    */
+
+    if (
+        state.training.answered
+    ) {
+
+        nextTraining();
+
+        return;
+    }
+
+
+    const input =
+        document.getElementById(
+            "trainingInput"
+        );
+
+
+    const value =
+        input.value.trim();
+
+
+    if (!value) {
 
         return;
     }
 
 
     const item =
-        getCurrentTrainingItem();
+        pool[
+            state.training.index
+        ];
 
-    if (!item) return;
+
+    const mode =
+        state.training.mode;
 
 
-    const input =
-        document.getElementById("trainingInput");
+    const errors =
+        getErrorMap(mode);
 
-    const feedback =
-        document.getElementById("trainingFeedback");
 
-    const answer =
-        normalize(input ? input.value : "");
+    const progress =
+        getProgressMap(mode);
 
-    const correctAnswer =
+
+    const correct =
+        normalize(value) ===
         normalize(item[1]);
-
-
-    if (!answer) {
-
-        if (feedback) {
-
-            feedback.textContent =
-                "Bitte gib zuerst eine Antwort ein.";
-
-            feedback.className =
-                "training-feedback error";
-        }
-
-        if (input) {
-            input.focus();
-        }
-
-        return;
-    }
 
 
     state.training.attempts++;
 
 
-    const isCorrect =
-        answer === correctAnswer;
+    /*
+        Statistik nur für das
+        aktuelle Alphabet.
+    */
 
-
-    if (state.training.mode === "nato") {
+    if (mode === "nato") {
 
         state.stats.natoAttempts++;
 
@@ -615,1293 +897,1356 @@ function answerTraining() {
     }
 
 
-    if (isCorrect) {
+    /* ==========================================
+       RICHTIG
+    ========================================== */
+
+    if (correct) {
 
         state.training.correct++;
+
         state.training.score += 10;
 
 
-        if (state.training.mode === "nato") {
+        if (mode === "nato") {
+
             state.stats.natoCorrect++;
+
         } else {
+
             state.stats.deutschCorrect++;
         }
 
 
         /*
-            3-MAL-REGEL
+            Ist dieser Buchstabe bereits
+            ein Fehler?
 
-            Nur Buchstabe -> Funkwort.
-
-            Ein Fehler wird erst gelöscht,
-            wenn derselbe Fehler 3x hintereinander
-            richtig beantwortet wurde.
+            Dann gilt die 3× Regel.
         */
 
         if (
-            state.training.errors[item[0]]
+            Object.prototype.hasOwnProperty.call(
+                errors,
+                item[0]
+            )
         ) {
 
-            let streak =
-                state.training.streaks[item[0]] || 0;
-
-            streak++;
-
-            state.training.streaks[item[0]] =
-                streak;
+            progress[item[0]] =
+                (progress[item[0]] || 0) + 1;
 
 
-            if (streak >= 3) {
+            /*
+                Nach 3 richtigen Antworten
+                wird der Fehler entfernt.
+            */
 
-                delete state.training.errors[item[0]];
-                delete state.training.streaks[item[0]];
+            if (
+                progress[item[0]] >= 3
+            ) {
 
-                if (feedback) {
+                delete errors[item[0]];
 
-                    feedback.textContent =
-                        `RICHTIG! ${item[1]} – Fehler gelernt und entfernt.`;
+                delete progress[item[0]];
 
-                    feedback.className =
-                        "training-feedback success";
-                }
+
+                document.getElementById(
+                    "trainingFeedback"
+                ).textContent =
+                    "✓ RICHTIG – FEHLER BEHOBEN (3/3)";
 
             } else {
 
-                if (feedback) {
-
-                    feedback.textContent =
-                        `RICHTIG! ${streak}/3 richtige Antworten zum Entfernen des Fehlers.`;
-
-                    feedback.className =
-                        "training-feedback success";
-                }
+                document.getElementById(
+                    "trainingFeedback"
+                ).textContent =
+                    `✓ RICHTIG – FEHLERFORTSCHRITT ${progress[item[0]]}/3`;
             }
 
         } else {
 
-            if (feedback) {
-
-                feedback.textContent =
-                    `RICHTIG! ${item[1]}`;
-
-                feedback.className =
-                    "training-feedback success";
-            }
+            document.getElementById(
+                "trainingFeedback"
+            ).textContent =
+                "✓ RICHTIG";
         }
 
 
-        if (input) {
-            input.classList.add("correct");
-        }
+        document.getElementById(
+            "trainingFeedback"
+        ).className =
+            "feedback good";
+    }
 
 
-    } else {
+    /* ==========================================
+       FALSCH
+    ========================================== */
+
+    else {
 
         /*
-            FALSCH:
-
-            Fehler speichern.
-            Streak wieder auf 0.
+            Falls der Fehler noch nicht existiert,
+            wird er angelegt.
         */
 
-        state.training.errors[item[0]] =
-            (state.training.errors[item[0]] || 0) + 1;
+        if (
+            !Object.prototype.hasOwnProperty.call(
+                errors,
+                item[0]
+            )
+        ) {
 
-        state.training.streaks[item[0]] = 0;
+            errors[item[0]] = {
 
+                wrong: 0,
 
-        if (feedback) {
-
-            feedback.textContent =
-                `FALSCH! Richtig wäre: ${item[1]}`;
-
-            feedback.className =
-                "training-feedback error";
+                streak: 0
+            };
         }
 
 
-        if (input) {
-            input.classList.add("wrong");
-        }
+        /*
+            Fehlerzahl erhöhen.
+        */
+
+        errors[item[0]].wrong =
+            (errors[item[0]].wrong || 0) + 1;
+
+
+        /*
+            Ganz wichtig:
+
+            Eine falsche Antwort setzt
+            die 3er-Serie zurück.
+        */
+
+        errors[item[0]].streak = 0;
+
+        progress[item[0]] = 0;
+
+
+        document.getElementById(
+            "trainingFeedback"
+        ).textContent =
+            `✕ FALSCH – richtig wäre: ${item[1]}`;
+
+
+        document.getElementById(
+            "trainingFeedback"
+        ).className =
+            "feedback bad";
     }
 
 
     state.training.answered = true;
 
+
     saveState();
 
+    renderHome();
 
-    const button =
-        document.getElementById("trainingAnswerBtn");
+    renderTraining();
 
-    if (button) {
-
-        button.textContent =
-            "NÄCHSTER BUCHSTABE";
-    }
-
-
-    renderTrainingStatsOnly();
+    renderStats();
 }
 
 
-function nextTrainingItem() {
+/* =========================================================
+   NÄCHSTER TRAININGSBUCHSTABE
+========================================================= */
 
-    const pool =
-        getTrainingPool();
-
-    if (!pool.length) {
-
-        state.training.answered = false;
-
-        renderTraining();
-
-        return;
-    }
-
-
-    /*
-        Bei Fehlertraining kann ein Buchstabe
-        nach 3 richtigen Antworten aus der Liste
-        verschwunden sein.
-
-        Deshalb Index absichern.
-    */
-
-    if (
-        state.training.index >= pool.length - 1
-    ) {
-
-        state.training.index = 0;
-
-    } else {
-
-        state.training.index++;
-    }
-
+function nextTraining() {
 
     state.training.answered = false;
 
 
-    const input =
-        document.getElementById("trainingInput");
+    const pool =
+        getTrainingPool();
 
-    if (input) {
 
-        input.value = "";
+    if (pool.length) {
 
-        input.classList.remove(
-            "correct",
-            "wrong"
-        );
+        state.training.index =
+            (
+                state.training.index + 1
+            ) % pool.length;
     }
 
+
+    saveState();
 
     renderTraining();
-
-    saveState();
-}
-
-
-function renderTrainingStatsOnly() {
-
-    const score =
-        document.getElementById("trainingScore");
-
-    const correct =
-        document.getElementById("trainingCorrect");
-
-    const attempts =
-        document.getElementById("trainingAttempts");
-
-
-    if (score) {
-        score.textContent =
-            state.training.score;
-    }
-
-    if (correct) {
-        correct.textContent =
-            state.training.correct;
-    }
-
-    if (attempts) {
-        attempts.textContent =
-            state.training.attempts;
-    }
 }
 
 
 /* =========================================================
-   PRÜFUNG
-   ========================================================= */
+   TRAINING ALPHABET WECHSELN
+========================================================= */
 
-/*
-    DIE PRÜFUNG IST NUR:
+function changeTrainingMode(mode) {
 
-    BUCHSTABE -> FUNKWORT
-
-    Es gibt KEINE Möglichkeit mehr,
-    Funkwort -> Buchstabe auszuwählen.
-*/
-
-
-let exam = {
-    mode: "nato",
-
-    count: 10,
-
-    index: 0,
-
-    questions: [],
-
-    correct: 0,
-
-    wrong: 0,
-
-    started: false,
-
-    finished: false,
-
-    answered: false,
-
-    startTime: null,
-
-    answers: []
-};
-
-
-function renderExam() {
-
-    const setup =
-        document.getElementById("examSetup");
-
-    const area =
-        document.getElementById("examArea");
-
-    const result =
-        document.getElementById("examResult");
-
-
-    if (result) {
-        result.style.display = "none";
-    }
-
-
-    if (area) {
-        area.style.display =
-            exam.started && !exam.finished
-                ? "block"
-                : "none";
-    }
-
-
-    if (setup) {
-        setup.style.display =
-            exam.started
-                ? "none"
-                : "block";
-    }
-
-
-    if (
-        exam.started &&
-        !exam.finished
-    ) {
-
-        renderExamQuestion();
-    }
-}
-
-
-function startExam() {
-
-    const modeSelect =
-        document.getElementById("examMode");
-
-    const countSelect =
-        document.getElementById("examCount");
-
-
-    if (modeSelect) {
-        exam.mode =
-            modeSelect.value || "nato";
-    }
-
-
-    if (countSelect) {
-        exam.count =
-            parseInt(
-                countSelect.value,
-                10
-            ) || 10;
-    }
-
-
-    const data =
-        getData(exam.mode);
-
-
-    exam.questions =
-        [...data]
-            .sort(() => Math.random() - 0.5)
-            .slice(
-                0,
-                Math.min(
-                    exam.count,
-                    data.length
-                )
-            );
-
-
-    exam.index = 0;
-    exam.correct = 0;
-    exam.wrong = 0;
-    exam.answers = [];
-
-    exam.started = true;
-    exam.finished = false;
-    exam.answered = false;
-
-    exam.startTime =
-        Date.now();
-
-
-    renderExam();
-}
-
-
-function renderExamQuestion() {
-
-    const question =
-        document.getElementById("examQuestion");
-
-    const input =
-        document.getElementById("examInput");
-
-    const feedback =
-        document.getElementById("examFeedback");
-
-    const button =
-        document.getElementById("examAnswerBtn");
-
-    const progress =
-        document.getElementById("examProgress");
-
-    const counter =
-        document.getElementById("examCounter");
-
-
-    const item =
-        exam.questions[exam.index];
-
-
-    if (!item) {
-        finishExam();
-        return;
-    }
-
-
-    if (question) {
-        question.textContent =
-            item[0];
-    }
-
-
-    if (input) {
-
-        input.value = "";
-        input.disabled = false;
-
-        input.classList.remove(
-            "correct",
-            "wrong"
-        );
-
-        setTimeout(() => {
-            input.focus();
-        }, 50);
-    }
-
-
-    if (feedback) {
-
-        feedback.textContent = "";
-        feedback.className =
-            "exam-feedback";
-    }
-
-
-    if (button) {
-
-        button.textContent =
-            "ANTWORT PRÜFEN";
-
-        button.disabled = false;
-    }
-
-
-    if (counter) {
-
-        counter.textContent =
-            `${exam.index + 1} / ${exam.questions.length}`;
-    }
-
-
-    if (progress) {
-
-        const percent =
-            (exam.index /
-                exam.questions.length) * 100;
-
-        progress.style.width =
-            `${percent}%`;
-    }
-
-
-    exam.answered = false;
-}
-
-
-function answerExam() {
-
-    if (exam.answered) {
-
-        exam.index++;
-
-        if (
-            exam.index >=
-            exam.questions.length
-        ) {
-
-            finishExam();
-
-        } else {
-
-            renderExamQuestion();
-        }
-
-        return;
-    }
-
-
-    const item =
-        exam.questions[exam.index];
-
-    if (!item) return;
-
-
-    const input =
-        document.getElementById("examInput");
-
-    const feedback =
-        document.getElementById("examFeedback");
-
-    const answer =
-        normalize(
-            input ? input.value : ""
-        );
-
-    const correctAnswer =
-        normalize(item[1]);
-
-
-    if (!answer) {
-
-        if (feedback) {
-
-            feedback.textContent =
-                "Bitte gib zuerst eine Antwort ein.";
-
-            feedback.className =
-                "exam-feedback error";
-        }
-
-        return;
-    }
-
-
-    const correct =
-        answer === correctAnswer;
-
-
-    exam.answered = true;
-
-
-    if (correct) {
-
-        exam.correct++;
-
-        if (input) {
-            input.classList.add("correct");
-        }
-
-        if (feedback) {
-
-            feedback.textContent =
-                `RICHTIG! ${item[1]}`;
-
-            feedback.className =
-                "exam-feedback success";
-        }
-
-    } else {
-
-        exam.wrong++;
-
-        if (input) {
-            input.classList.add("wrong");
-        }
-
-        if (feedback) {
-
-            feedback.textContent =
-                `FALSCH! Richtig wäre: ${item[1]}`;
-
-            feedback.className =
-                "exam-feedback error";
-        }
-    }
-
-
-    exam.answers.push({
-        letter: item[0],
-        correctAnswer: item[1],
-        userAnswer: answer,
-        correct
-    });
-
-
-    if (input) {
-        input.disabled = true;
-    }
-
-
-    const button =
-        document.getElementById("examAnswerBtn");
-
-    if (button) {
-
-        button.textContent =
-            exam.index + 1 >= exam.questions.length
-                ? "ERGEBNIS ANZEIGEN"
-                : "NÄCHSTE FRAGE";
-    }
-}
-
-
-function finishExam() {
-
-    exam.finished = true;
-    exam.started = false;
-
-
-    const duration =
-        exam.startTime
-            ? Math.round(
-                (Date.now() - exam.startTime) / 1000
-            )
-            : 0;
-
-
-    state.stats.exams++;
+    state.training.mode =
+        mode;
 
 
     /*
-        Prüfungsfehler werden ins Training
-        übernommen.
+        Beim Wechsel des Alphabets
+        wird automatisch auf normales
+        Training zurückgesetzt.
 
-        Auch hier ausschließlich
-        Buchstabe -> Funkwort.
+        Dadurch kann nicht versehentlich
+        das falsche Fehleralphabet
+        angezeigt werden.
     */
-
-    exam.answers
-        .filter(answer => !answer.correct)
-        .forEach(answer => {
-
-            state.training.errors[answer.letter] =
-                (state.training.errors[answer.letter] || 0) + 1;
-
-            state.training.streaks[answer.letter] = 0;
-        });
-
-
-    const percent =
-        exam.questions.length
-            ? Math.round(
-                (exam.correct /
-                    exam.questions.length) * 100
-            )
-            : 0;
-
-
-    state.stats.history.push({
-        date: new Date().toISOString(),
-        mode: exam.mode,
-        total: exam.questions.length,
-        correct: exam.correct,
-        wrong: exam.wrong,
-        percent,
-        duration
-    });
-
-
-    if (
-        state.stats.history.length > 30
-    ) {
-
-        state.stats.history =
-            state.stats.history.slice(-30);
-    }
-
-
-    saveState();
-
-
-    const setup =
-        document.getElementById("examSetup");
-
-    const area =
-        document.getElementById("examArea");
-
-    const result =
-        document.getElementById("examResult");
-
-
-    if (setup) {
-        setup.style.display = "none";
-    }
-
-    if (area) {
-        area.style.display = "none";
-    }
-
-
-    if (result) {
-
-        result.style.display =
-            "block";
-
-
-        const resultPercent =
-            document.getElementById(
-                "examResultPercent"
-            );
-
-        const resultCorrect =
-            document.getElementById(
-                "examResultCorrect"
-            );
-
-        const resultWrong =
-            document.getElementById(
-                "examResultWrong"
-            );
-
-        const resultTime =
-            document.getElementById(
-                "examResultTime"
-            );
-
-
-        if (resultPercent) {
-            resultPercent.textContent =
-                `${percent}%`;
-        }
-
-        if (resultCorrect) {
-            resultCorrect.textContent =
-                exam.correct;
-        }
-
-        if (resultWrong) {
-            resultWrong.textContent =
-                exam.wrong;
-        }
-
-        if (resultTime) {
-            resultTime.textContent =
-                `${duration}s`;
-        }
-    }
-}
-
-
-/* =========================================================
-   FEHLER LERNEN
-   ========================================================= */
-
-function startErrorTraining() {
-
-    const errors =
-        Object.keys(
-            state.training.errors
-        );
-
-
-    if (!errors.length) {
-
-        alert(
-            "Du hast aktuell keine Fehler zum Lernen."
-        );
-
-        return;
-    }
-
-
-    /*
-        GANZ WICHTIG:
-
-        Fehlertraining immer
-        Buchstabe -> Funkwort.
-    */
-
-    state.training.direction =
-        "letter";
 
     state.training.source =
-        "errors";
-
-    state.training.index =
-        0;
-
-    state.training.answered =
-        false;
+        "all";
 
 
-    showPage("training");
+    state.training.index = 0;
+
+    state.training.answered = false;
+
+
+    saveState();
 
     renderTraining();
 }
 
 
 /* =========================================================
-   NEUES TRAINING
-   ========================================================= */
+   NORMALES TRAINING
+========================================================= */
 
 function startNormalTraining() {
 
     state.training.source =
         "all";
 
-    state.training.index =
-        0;
 
-    state.training.direction =
-        "letter";
+    state.training.index = 0;
 
-    state.training.answered =
-        false;
+    state.training.answered = false;
 
 
-    const input =
-        document.getElementById(
-            "trainingInput"
-        );
-
-    if (input) {
-        input.value = "";
-    }
-
+    saveState();
 
     renderTraining();
 }
 
 
 /* =========================================================
-   MODUS WECHSEL
-   ========================================================= */
+   FEHLERTRAINING
+========================================================= */
 
-function changeTrainingMode(mode) {
+function startErrorTraining(
+    mode = state.training.mode
+) {
+
+    /*
+        Das Alphabet wird ausdrücklich
+        übernommen.
+
+        Wenn die Prüfung NATO war,
+        wird NATO-Fehlertraining gestartet.
+
+        Wenn die Prüfung Deutsch war,
+        wird Deutsch-Fehlertraining gestartet.
+    */
 
     state.training.mode =
-        mode === "deutsch"
-            ? "deutsch"
-            : "nato";
+        mode;
+
+
+    state.training.source =
+        "errors";
+
 
     state.training.index = 0;
 
     state.training.answered = false;
 
-    state.training.direction =
-        "letter";
 
-    renderTraining();
+    saveState();
+
+    showPage("training");
+}
+
+
+/* =========================================================
+   PRÜFUNG STARTEN
+========================================================= */
+
+function startExam() {
+
+    const mode =
+        document.getElementById(
+            "examMode"
+        ).value;
+
+
+    const selected =
+        document.getElementById(
+            "examCount"
+        ).value;
+
+
+    let data =
+        [...DATA[mode]];
+
+
+    /*
+        Fragen zufällig mischen.
+    */
+
+    data.sort(
+        () => Math.random() - 0.5
+    );
+
+
+    const count =
+        selected === "all"
+            ? data.length
+            : Math.min(
+                Number(selected),
+                data.length
+            );
+
+
+    state.exam = {
+
+        mode: mode,
+
+        count: count,
+
+        index: 0,
+
+        questions:
+            data.slice(0, count),
+
+        correct: 0,
+
+        wrong: 0,
+
+        answers: [],
+
+        answered: false,
+
+        startTime: Date.now()
+    };
+
+
+    document
+        .getElementById(
+            "examSetup"
+        )
+        .classList.add("hidden");
+
+
+    document
+        .getElementById(
+            "examResult"
+        )
+        .classList.add("hidden");
+
+
+    document
+        .getElementById(
+            "examArea"
+        )
+        .classList.remove("hidden");
+
+
+    renderExamQuestion();
+}
+
+
+/* =========================================================
+   PRÜFUNGSFRAGE
+========================================================= */
+
+function renderExamQuestion() {
+
+    const exam =
+        state.exam;
+
+
+    const item =
+        exam.questions[
+            exam.index
+        ];
+
+
+    if (!item) {
+
+        finishExam();
+
+        return;
+    }
+
+
+    document.getElementById(
+        "examCounter"
+    ).textContent =
+        `${exam.index + 1} / ${exam.count}`;
+
+
+    document.getElementById(
+        "examProgress"
+    ).style.width =
+        `${exam.index / exam.count * 100}%`;
+
+
+    document.getElementById(
+        "examQuestion"
+    ).textContent =
+        item[0];
+
+
+    document.getElementById(
+        "examInput"
+    ).value = "";
+
+
+    const feedback =
+        document.getElementById(
+            "examFeedback"
+        );
+
+
+    feedback.textContent = "";
+
+    feedback.className =
+        "feedback";
+
+
+    document.getElementById(
+        "examAnswerBtn"
+    ).textContent =
+        "ANTWORT SENDEN";
+
+
+    /*
+        Eventhandler wieder auf
+        normale Antwort setzen.
+    */
+
+    document.getElementById(
+        "examAnswerBtn"
+    ).onclick =
+        answerExam;
+
+
+    setTimeout(() => {
+
+        document
+            .getElementById(
+                "examInput"
+            )
+            ?.focus();
+
+    }, 30);
+}
+
+
+/* =========================================================
+   PRÜFUNGSANTWORT
+========================================================= */
+
+function answerExam() {
+
+    const input =
+        document.getElementById(
+            "examInput"
+        );
+
+
+    const value =
+        input.value.trim();
+
+
+    if (!value) {
+
+        return;
+    }
+
+
+    const exam =
+        state.exam;
+
+
+    const item =
+        exam.questions[
+            exam.index
+        ];
+
+
+    const correct =
+        normalize(value) ===
+        normalize(item[1]);
+
+
+    exam.answers.push({
+
+        letter: item[0],
+
+        word: item[1],
+
+        given: value,
+
+        correct: correct
+    });
+
+
+    if (correct) {
+
+        exam.correct++;
+
+
+        document.getElementById(
+            "examFeedback"
+        ).textContent =
+            "✓ RICHTIG";
+
+
+        document.getElementById(
+            "examFeedback"
+        ).className =
+            "feedback good";
+
+    } else {
+
+        exam.wrong++;
+
+
+        document.getElementById(
+            "examFeedback"
+        ).textContent =
+            `✕ FALSCH – richtig: ${item[1]}`;
+
+
+        document.getElementById(
+            "examFeedback"
+        ).className =
+            "feedback bad";
+    }
+
+
+    exam.answered = true;
+
+
+    const button =
+        document.getElementById(
+            "examAnswerBtn"
+        );
+
+
+    button.textContent =
+        "NÄCHSTE FRAGE";
+
+
+    button.onclick =
+        nextExamQuestion;
+
 
     saveState();
 }
 
 
 /* =========================================================
-   STATISTIK
-   ========================================================= */
+   NÄCHSTE PRÜFUNGSFRAGE
+========================================================= */
 
-function renderStats() {
+function nextExamQuestion() {
 
-    const page =
-        document.getElementById("statsPage");
-
-    if (!page) return;
+    const exam =
+        state.exam;
 
 
-    const natoAttempts =
-        document.getElementById(
-            "statsNatoAttempts"
-        );
+    exam.index++;
 
-    const natoCorrect =
-        document.getElementById(
-            "statsNatoCorrect"
-        );
-
-    const deutschAttempts =
-        document.getElementById(
-            "statsDeutschAttempts"
-        );
-
-    const deutschCorrect =
-        document.getElementById(
-            "statsDeutschCorrect"
-        );
-
-    const exams =
-        document.getElementById(
-            "statsExams"
-        );
-
-    const errors =
-        document.getElementById(
-            "statsErrors"
-        );
+    exam.answered = false;
 
 
-    if (natoAttempts) {
-        natoAttempts.textContent =
-            state.stats.natoAttempts;
-    }
+    if (
+        exam.index >=
+        exam.count
+    ) {
 
-    if (natoCorrect) {
-        natoCorrect.textContent =
-            state.stats.natoCorrect;
-    }
+        finishExam();
 
-    if (deutschAttempts) {
-        deutschAttempts.textContent =
-            state.stats.deutschAttempts;
-    }
-
-    if (deutschCorrect) {
-        deutschCorrect.textContent =
-            state.stats.deutschCorrect;
-    }
-
-    if (exams) {
-        exams.textContent =
-            state.stats.exams;
-    }
-
-    if (errors) {
-        errors.textContent =
-            Object.keys(
-                state.training.errors
-            ).length;
+        return;
     }
 
 
-    renderErrorList();
+    renderExamQuestion();
 }
 
 
-function renderErrorList() {
+/* =========================================================
+   PRÜFUNG ABSCHLIESSEN
+========================================================= */
 
-    const container =
+function finishExam() {
+
+    const exam =
+        state.exam;
+
+
+    state.stats.exams++;
+
+
+    const elapsed =
+        Math.max(
+            0,
+            Math.floor(
+                (
+                    Date.now() -
+                    exam.startTime
+                ) / 1000
+            )
+        );
+
+
+    /*
+        Nur Fehler des geprüften
+        Alphabets werden gespeichert.
+    */
+
+    const errors =
+        state.training.errors[
+            exam.mode
+        ];
+
+
+    const progress =
+        state.training.progress[
+            exam.mode
+        ];
+
+
+    exam.answers
+        .filter(
+            answer =>
+                !answer.correct
+        )
+        .forEach(answer => {
+
+            if (
+                !errors[answer.letter]
+            ) {
+
+                errors[answer.letter] = {
+
+                    wrong: 0,
+
+                    streak: 0
+                };
+            }
+
+
+            errors[answer.letter].wrong =
+                (
+                    errors[
+                        answer.letter
+                    ].wrong || 0
+                ) + 1;
+
+
+            /*
+                Prüfungsfehler beginnen
+                immer wieder bei 0/3.
+            */
+
+            errors[answer.letter].streak = 0;
+
+            progress[answer.letter] = 0;
+        });
+
+
+    state.stats.history.push({
+
+        date:
+            new Date().toISOString(),
+
+        mode:
+            exam.mode,
+
+        count:
+            exam.count,
+
+        correct:
+            exam.correct,
+
+        wrong:
+            exam.wrong,
+
+        time:
+            elapsed
+    });
+
+
+    /*
+        Maximal 50 Prüfungen speichern.
+    */
+
+    state.stats.history =
+        state.stats.history.slice(-50);
+
+
+    saveState();
+
+
+    document
+        .getElementById(
+            "examArea"
+        )
+        .classList.add("hidden");
+
+
+    document
+        .getElementById(
+            "examResult"
+        )
+        .classList.remove("hidden");
+
+
+    document.getElementById(
+        "examPercent"
+    ).textContent =
+        calculateAccuracy(
+            exam.count,
+            exam.correct
+        ) + "%";
+
+
+    document.getElementById(
+        "examCorrect"
+    ).textContent =
+        exam.correct;
+
+
+    document.getElementById(
+        "examWrong"
+    ).textContent =
+        exam.wrong;
+
+
+    document.getElementById(
+        "examTime"
+    ).textContent =
+        formatTime(elapsed);
+
+
+    document.getElementById(
+        "examErrorTrainingBtn"
+    ).disabled =
+        exam.wrong === 0;
+
+
+    renderHome();
+
+    renderStats();
+}
+
+
+/* =========================================================
+   PRÜFUNG WIEDERHOLEN
+========================================================= */
+
+function repeatExam() {
+
+    document
+        .getElementById(
+            "examResult"
+        )
+        .classList.add("hidden");
+
+
+    document
+        .getElementById(
+            "examSetup"
+        )
+        .classList.remove("hidden");
+}
+
+
+/* =========================================================
+   ZEIT FORMATIEREN
+========================================================= */
+
+function formatTime(seconds) {
+
+    const minutes =
+        Math.floor(
+            seconds / 60
+        );
+
+
+    const remainingSeconds =
+        seconds % 60;
+
+
+    return `${minutes}:${String(
+        remainingSeconds
+    ).padStart(2, "0")}`;
+}
+
+
+/* =========================================================
+   STATISTIK
+========================================================= */
+
+function renderProgressList(
+    mode,
+    targetID
+) {
+
+    const target =
         document.getElementById(
-            "statsErrorList"
-        );
-
-    if (!container) return;
-
-
-    const errorKeys =
-        Object.keys(
-            state.training.errors
+            targetID
         );
 
 
-    if (!errorKeys.length) {
-
-        container.innerHTML = `
-            <div class="empty-state">
-                Keine Fehler gespeichert.
-            </div>
-        `;
+    if (!target) {
 
         return;
     }
 
 
     const data =
-        getData(state.training.mode);
+        DATA[mode];
 
 
-    container.innerHTML = "";
+    const attempts =
+        mode === "nato"
+            ? state.stats.natoAttempts
+            : state.stats.deutschAttempts;
 
 
-    errorKeys.forEach(letter => {
+    const correct =
+        mode === "nato"
+            ? state.stats.natoCorrect
+            : state.stats.deutschCorrect;
+
+
+    const overall =
+        calculateAccuracy(
+            attempts,
+            correct
+        );
+
+
+    target.innerHTML =
+        data
+            .map(item => {
+
+                const error =
+                    state.training.errors[
+                        mode
+                    ][item[0]];
+
+
+                let value =
+                    overall;
+
+
+                let display =
+                    overall + "%";
+
+
+                if (error) {
+
+                    value =
+                        Math.min(
+                            100,
+                            (error.streak || 0)
+                            * 33
+                        );
+
+
+                    display =
+                        `${error.streak || 0}/3`;
+                }
+
+
+                return `
+                    <div class="progress-row">
+
+                        <span>
+                            ${escapeHTML(item[0])}
+                        </span>
+
+                        <div class="progress-bar">
+                            <div
+                                style="width:${value}%"
+                            ></div>
+                        </div>
+
+                        <span class="progress-value">
+                            ${display}
+                        </span>
+
+                    </div>
+                `;
+            })
+            .join("");
+}
+
+
+function renderStats() {
+
+    document.getElementById(
+        "statsNatoAttempts"
+    ).textContent =
+        state.stats.natoAttempts;
+
+
+    document.getElementById(
+        "statsNatoCorrect"
+    ).textContent =
+        state.stats.natoCorrect;
+
+
+    document.getElementById(
+        "statsDeutschAttempts"
+    ).textContent =
+        state.stats.deutschAttempts;
+
+
+    document.getElementById(
+        "statsDeutschCorrect"
+    ).textContent =
+        state.stats.deutschCorrect;
+
+
+    document.getElementById(
+        "statsExams"
+    ).textContent =
+        state.stats.exams;
+
+
+    document.getElementById(
+        "statsErrors"
+    ).textContent =
+        getOpenErrorCount();
+
+
+    renderProgressList(
+        "nato",
+        "natoProgressList"
+    );
+
+
+    renderProgressList(
+        "deutsch",
+        "germanProgressList"
+    );
+
+
+    const list =
+        document.getElementById(
+            "statsErrorList"
+        );
+
+
+    const rows = [];
+
+
+    /*
+        NATO Fehler
+    */
+
+    for (
+        const [
+            letter,
+            info
+        ]
+        of Object.entries(
+            state.training.errors.nato
+        )
+    ) {
 
         const item =
-            data.find(
-                entry =>
-                    entry[0] === letter
+            DATA.nato.find(
+                x =>
+                    x[0] === letter
             );
 
 
-        if (!item) return;
+        rows.push(`
 
+            <div class="error-row">
 
-        const errorCount =
-            state.training.errors[letter] || 0;
+                <span class="error-letter">
+                    ${escapeHTML(letter)}
+                </span>
 
-        const streak =
-            state.training.streaks[letter] || 0;
+                <span>
+                    ${escapeHTML(
+                        item
+                            ? item[1]
+                            : ""
+                    )}
+                </span>
 
+                <span class="error-count">
+                    NATO · ${info.wrong || 0} Fehler
+                </span>
 
-        const row =
-            document.createElement("div");
+                <span class="error-status">
+                    ${info.streak || 0}/3
+                </span>
 
-        row.className =
-            "error-row";
-
-
-        row.innerHTML = `
-            <div>
-                <strong>${item[0]}</strong>
-                <span>${item[1]}</span>
             </div>
+        `);
+    }
 
-            <div class="error-row-right">
-                <span>${errorCount} Fehler</span>
-                <span>${streak}/3</span>
+
+    /*
+        Deutsch Fehler
+    */
+
+    for (
+        const [
+            letter,
+            info
+        ]
+        of Object.entries(
+            state.training.errors.deutsch
+        )
+    ) {
+
+        const item =
+            DATA.deutsch.find(
+                x =>
+                    x[0] === letter
+            );
+
+
+        rows.push(`
+
+            <div class="error-row">
+
+                <span class="error-letter">
+                    ${escapeHTML(letter)}
+                </span>
+
+                <span>
+                    ${escapeHTML(
+                        item
+                            ? item[1]
+                            : ""
+                    )}
+                </span>
+
+                <span class="error-count">
+                    DEUTSCH · ${info.wrong || 0} Fehler
+                </span>
+
+                <span class="error-status">
+                    ${info.streak || 0}/3
+                </span>
+
             </div>
-        `;
+        `);
+    }
 
 
-        container.appendChild(row);
-    });
+    if (!rows.length) {
+
+        list.innerHTML =
+            `
+            <div class="error-empty">
+                ✓ Keine offenen Fehler vorhanden.
+            </div>
+            `;
+
+    } else {
+
+        list.innerHTML =
+            rows.join("");
+    }
 }
 
 
 /* =========================================================
-   EVENT LISTENER
-   ========================================================= */
+   EVENTS
+========================================================= */
+
+function bindEvents() {
+
+    /*
+        Navigation
+    */
+
+    document
+        .querySelectorAll(
+            "[data-page]"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () =>
+                    showPage(
+                        button.dataset.page
+                    )
+            );
+        });
+
+
+    /*
+        Lernen
+    */
+
+    document
+        .querySelectorAll(
+            "[data-learn-mode]"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    learnMode =
+                        button.dataset.learnMode;
+
+                    renderLearn();
+                }
+            );
+        });
+
+
+    /*
+        Training Alphabet
+    */
+
+    document
+        .querySelectorAll(
+            "[data-training-mode]"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () =>
+                    changeTrainingMode(
+                        button.dataset.trainingMode
+                    )
+            );
+        });
+
+
+    /*
+        Normales Training
+    */
+
+    document
+        .getElementById(
+            "normalTrainingBtn"
+        )
+        .addEventListener(
+            "click",
+            startNormalTraining
+        );
+
+
+    /*
+        Fehlertraining
+    */
+
+    document
+        .getElementById(
+            "errorTrainingBtn"
+        )
+        .addEventListener(
+            "click",
+            () =>
+                startErrorTraining()
+        );
+
+
+    /*
+        Training Antwort
+    */
+
+    document
+        .getElementById(
+            "trainingAnswerBtn"
+        )
+        .addEventListener(
+            "click",
+            answerTraining
+        );
+
+
+    /*
+        Enter im Training
+    */
+
+    document
+        .getElementById(
+            "trainingInput"
+        )
+        .addEventListener(
+            "keydown",
+            event => {
+
+                if (
+                    event.key === "Enter"
+                ) {
+
+                    answerTraining();
+                }
+            }
+        );
+
+
+    /*
+        Prüfung starten
+    */
+
+    document
+        .getElementById(
+            "startExamBtn"
+        )
+        .addEventListener(
+            "click",
+            startExam
+        );
+
+
+    /*
+        Prüfung Antwort
+    */
+
+    document
+        .getElementById(
+            "examAnswerBtn"
+        )
+        .addEventListener(
+            "click",
+            answerExam
+        );
+
+
+    /*
+        Enter in Prüfung
+    */
+
+    document
+        .getElementById(
+            "examInput"
+        )
+        .addEventListener(
+            "keydown",
+            event => {
+
+                if (
+                    event.key === "Enter"
+                ) {
+
+                    if (
+                        state.exam.answered
+                    ) {
+
+                        nextExamQuestion();
+
+                    } else {
+
+                        answerExam();
+                    }
+                }
+            }
+        );
+
+
+    /*
+        Prüfung wiederholen
+    */
+
+    document
+        .getElementById(
+            "repeatExamBtn"
+        )
+        .addEventListener(
+            "click",
+            repeatExam
+        );
+
+
+    /*
+        Fehler aus Prüfung lernen
+
+        WICHTIG:
+
+        Das Alphabet der Prüfung
+        wird übernommen.
+    */
+
+    document
+        .getElementById(
+            "examErrorTrainingBtn"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                if (
+                    state.exam.wrong > 0
+                ) {
+
+                    startErrorTraining(
+                        state.exam.mode
+                    );
+                }
+            }
+        );
+
+
+    /*
+        Mobile Menü
+    */
+
+    document
+        .getElementById(
+            "mobileMenuBtn"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                document
+                    .getElementById(
+                        "mainNav"
+                    )
+                    .classList.toggle(
+                        "open"
+                    );
+            }
+        );
+}
+
+
+/* =========================================================
+   START
+========================================================= */
 
 document.addEventListener(
     "DOMContentLoaded",
     () => {
 
-        loadState();
+        bindEvents();
 
-
-        /* Navigation */
-
-        document
-            .querySelectorAll(".nav-btn")
-            .forEach(button => {
-
-                button.addEventListener(
-                    "click",
-                    () => {
-
-                        showPage(
-                            button.dataset.page
-                        );
-                    }
-                );
-            });
-
-
-        /* Alle data-page Buttons */
-
-        document
-            .querySelectorAll(
-                "[data-page]"
-            )
-            .forEach(button => {
-
-                if (
-                    button.classList.contains(
-                        "nav-btn"
-                    )
-                ) {
-                    return;
-                }
-
-
-                button.addEventListener(
-                    "click",
-                    () => {
-
-                        showPage(
-                            button.dataset.page
-                        );
-                    }
-                );
-            });
-
-
-        /* Lernen */
-
-        document
-            .querySelectorAll(
-                "[data-learn-mode]"
-            )
-            .forEach(button => {
-
-                button.addEventListener(
-                    "click",
-                    () => {
-
-                        document
-                            .querySelectorAll(
-                                "[data-learn-mode]"
-                            )
-                            .forEach(btn =>
-                                btn.classList.remove(
-                                    "active"
-                                )
-                            );
-
-
-                        button.classList.add(
-                            "active"
-                        );
-
-
-                        learnMode =
-                            button.dataset.learnMode;
-
-
-                        renderLearn();
-                    }
-                );
-            });
-
-
-        /* Training Mode */
-
-        document
-            .querySelectorAll(
-                "[data-training-mode]"
-            )
-            .forEach(button => {
-
-                button.addEventListener(
-                    "click",
-                    () => {
-
-                        document
-                            .querySelectorAll(
-                                "[data-training-mode]"
-                            )
-                            .forEach(btn =>
-                                btn.classList.remove(
-                                    "active"
-                                )
-                            );
-
-
-                        button.classList.add(
-                            "active"
-                        );
-
-
-                        changeTrainingMode(
-                            button.dataset.trainingMode
-                        );
-                    }
-                );
-            });
-
-
-        /* Training */
-
-        const trainingButton =
-            document.getElementById(
-                "trainingAnswerBtn"
-            );
-
-
-        if (trainingButton) {
-
-            trainingButton.addEventListener(
-                "click",
-                answerTraining
-            );
-        }
-
-
-        const trainingInput =
-            document.getElementById(
-                "trainingInput"
-            );
-
-
-        if (trainingInput) {
-
-            trainingInput.addEventListener(
-                "keydown",
-                event => {
-
-                    if (
-                        event.key === "Enter"
-                    ) {
-
-                        event.preventDefault();
-
-                        answerTraining();
-                    }
-                }
-            );
-        }
-
-
-        /* Neues Training */
-
-        const normalTrainingButton =
-            document.getElementById(
-                "normalTrainingBtn"
-            );
-
-
-        if (normalTrainingButton) {
-
-            normalTrainingButton.addEventListener(
-                "click",
-                startNormalTraining
-            );
-        }
-
-
-        /* Fehler lernen */
-
-        const errorTrainingButton =
-            document.getElementById(
-                "errorTrainingBtn"
-            );
-
-
-        if (errorTrainingButton) {
-
-            errorTrainingButton.addEventListener(
-                "click",
-                startErrorTraining
-            );
-        }
-
-
-        /* Prüfung */
-
-        const startExamButton =
-            document.getElementById(
-                "startExamBtn"
-            );
-
-
-        if (startExamButton) {
-
-            startExamButton.addEventListener(
-                "click",
-                startExam
-            );
-        }
-
-
-        const examButton =
-            document.getElementById(
-                "examAnswerBtn"
-            );
-
-
-        if (examButton) {
-
-            examButton.addEventListener(
-                "click",
-                answerExam
-            );
-        }
-
-
-        const examInput =
-            document.getElementById(
-                "examInput"
-            );
-
-
-        if (examInput) {
-
-            examInput.addEventListener(
-                "keydown",
-                event => {
-
-                    if (
-                        event.key === "Enter"
-                    ) {
-
-                        event.preventDefault();
-
-                        answerExam();
-                    }
-                }
-            );
-        }
-
-
-        /* Prüfung wiederholen */
-
-        const repeatExam =
-            document.getElementById(
-                "repeatExamBtn"
-            );
-
-
-        if (repeatExam) {
-
-            repeatExam.addEventListener(
-                "click",
-                () => {
-
-                    exam.started = false;
-                    exam.finished = false;
-
-                    renderExam();
-                }
-            );
-        }
-
-
-        /* Fehler aus Prüfung lernen */
-
-        const examErrorTraining =
-            document.getElementById(
-                "examErrorTrainingBtn"
-            );
-
-
-        if (examErrorTraining) {
-
-            examErrorTraining.addEventListener(
-                "click",
-                startErrorTraining
-            );
-        }
-
-
-        /* Start */
+        renderHome();
 
         renderLearn();
-        renderTraining();
-        renderExam();
-        renderStats();
 
+        renderTraining();
+
+        renderStats();
     }
 );
