@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#041018">
+<title>Funkalphabet Trainer</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="scanlines"></div><div class="topbar"></div>
+<main class="app">
+<header class="header">
+  <div class="brand"><div class="logo">RF<i></i></div><div><small>DIGITAL FUNK ACADEMY</small><h1>Funkalphabet <b>Trainer</b></h1><p>Trainieren. Prüfen. Sicher buchstabieren.</p></div></div>
+  <span class="online">● SYSTEM ONLINE</span>
+</header>
+<nav>
+<button class="nav active" data-page="home">⌂ Start</button><button class="nav" data-page="learn">▣ Lernen</button><button class="nav" data-page="training">◉ Training</button><button class="nav" data-page="exam">✓ Prüfung</button><button class="nav" data-page="stats">▥ Statistik</button>
+</nav>
+
+<section class="page active" id="home">
+<div class="hero panel"><div><small>FUNKTRAINING // SYSTEM 03</small><h2>Beherrsche das<br><em>Funkalphabet.</em></h2><p>Trainiere NATO oder die deutsche Buchstabiertafel, übe Fehler gezielt und stelle deine Prüfung selbst zusammen.</p><div class="actions"><button class="primary" data-go="training">Training starten</button><button class="secondary" data-go="exam">Prüfung konfigurieren</button></div></div><div class="display"><div>CH 01 <span>READY</span></div><strong>A</strong><b>ALPHA</b><small>● SIGNAL &nbsp; ONLINE</small></div></div>
+<div class="features"><div class="panel"><b>01</b><h3>Lernen</h3><p>Gehe das Alphabet Buchstabe für Buchstabe durch.</p></div><div class="panel"><b>02</b><h3>Training</h3><p>Übe zufällige Buchstaben oder gezielt deine Fehler.</p></div><div class="panel"><b>03</b><h3>Prüfung</h3><p>Wähle Alphabet, Anzahl, Reihenfolge und Richtung.</p></div></div>
+</section>
+
+<section class="page" id="learn">
+<div class="heading"><div><small>LERNMODUS</small><h2>Alphabet lernen</h2></div><div class="pills"><button class="mode active" data-learn="nato">NATO</button><button class="mode" data-learn="deutsch">DEUTSCH</button></div></div>
+<div class="learn-layout"><div class="panel learn-card"><small id="learnCount">1 / 26</small><div id="learnLetter">A</div><h3 id="learnWord">Alpha</h3><button class="secondary" id="learnSpeak">🔊 Anhören</button><div class="actions"><button class="secondary" id="learnPrev">← Zurück</button><button class="primary" id="learnNext">Weiter →</button></div></div><div class="panel side"><small>MERKLISTE</small><div class="grid compact" id="learnGrid"></div></div></div>
+</section>
+
+<section class="page" id="training">
+<div class="heading"><div><small>LIVE TRAINING</small><h2>Funkalphabet üben</h2></div><div class="pills"><button class="mode active" data-train="nato">NATO</button><button class="mode" data-train="deutsch">DEUTSCH</button></div></div>
+<div class="tools"><button class="tool active" data-source="all">Alle Buchstaben</button><button class="tool" data-source="errors">Nur meine Fehler <i id="errorBadge">0</i></button><button class="tool" id="direction">Richtung: Buchstabe → Funkwort</button></div>
+<div class="train-layout"><div class="panel trainer"><div class="status">● EMPFANG <span id="trainMode">NATO-ALPHABET</span></div><hr><small id="trainLabel">FUNKSPRUCH EINGEGANGEN</small><div class="big" id="prompt">A</div><p id="question">Wie lautet das Funkwort?</p>
+<form id="trainForm"><input id="answer" autocomplete="off" placeholder="Funkwort eingeben …"><button class="primary" id="trainButton">PRÜFEN</button></form><div class="feedback" id="trainFeedback"></div><small>ENTER = Prüfen / Weiter</small></div>
+<aside class="panel stats"><small>LIVE DATEN</small><div>Punkte <b id="score">0</b></div><div>Richtig <b id="correct">0</b></div><div>Versuche <b id="attempts">0</b></div><div>Trefferquote <b id="accuracy">0%</b></div><div>Alphabet <b id="progressText">0 / 26</b></div><div class="bar"><i id="progress"></i></div><button class="secondary" id="resetTraining">Zurücksetzen</button></aside>
+<div class="panel alphabet"><div class="section"><h3>Funkwort-Übersicht</h3><small>Grün = bereits richtig</small></div><div class="grid" id="alphabetGrid"></div></div></div>
+</section>
+
+<section class="page" id="exam">
+<div class="heading"><div><small>ZERTIFIZIERUNGSMODUS</small><h2>Prüfung konfigurieren</h2></div></div>
+<div id="examSetup" class="exam-grid">
+<div class="panel setup"><small>01</small><h3>Alphabet</h3><div class="choices"><label><input type="radio" name="examMode" value="nato" checked>NATO<small>26 Buchstaben</small></label><label><input type="radio" name="examMode" value="deutsch">Deutsch<small>30 Zeichen</small></label></div></div>
+<div class="panel setup"><small>02</small><h3>Anzahl Fragen</h3><div class="numbers"><button class="num">5</button><button class="num">10</button><button class="num active">20</button><button class="num" data-all="1">Alle</button></div><label class="custom">Eigene Anzahl <input id="customCount" type="number" min="1" max="30" placeholder="z.B. 15"></label></div>
+<div class="panel setup"><small>03</small><h3>Reihenfolge</h3><div class="choices"><label><input type="radio" name="examOrder" value="random" checked>Zufällig<small>gemischt</small></label><label><input type="radio" name="examOrder" value="alpha">Alphabetisch<small>A bis Z</small></label></div></div>
+<div class="panel setup"><small>04</small><h3>Abfragerichtung</h3><div class="choices"><label><input type="radio" name="examDir" value="letter" checked>Buchstabe → Funkwort<small>K → Köln</small></label><label><input type="radio" name="examDir" value="word">Funkwort → Buchstabe<small>Köln → K</small></label></div></div>
+<div class="panel summary"><div><small>DEINE PRÜFUNG</small><b id="examSummary">20 Fragen · NATO · Zufällig</b></div><button class="primary" id="startExam">PRÜFUNG STARTEN</button></div>
+</div>
+<div id="examRun" class="hidden"><div class="panel exam"><div class="examtop"><span id="examNum"></span><span id="timer">00:00</span></div><div class="bar"><i id="examBar"></i></div><small id="examDir">BUCHSTABE → FUNKWORT</small><div class="examPrompt" id="examPrompt">A</div><p id="examQuestion">Wie lautet das passende Funkwort?</p><form id="examForm"><input id="examAnswer" autocomplete="off" placeholder="Antwort eingeben …"><button class="primary">WEITER</button></form><div class="feedback" id="examFeedback"></div></div></div>
+<div id="examResult" class="panel result hidden"><small>PRÜFUNG ABGESCHLOSSEN</small><div id="resultScore">0 / 20</div><b id="resultPercent">0%</b><p id="resultTime">Zeit: 00:00</p><div class="bar"><i id="resultBar"></i></div><div id="resultErrors"></div><p id="resultMessage"></p><div class="actions"><button class="primary" id="retry">NOCHMAL</button><button class="secondary" id="errorTraining">FEHLER TRAINIEREN</button></div></div>
+</section>
+
+<section class="page" id="statsPage">
+<div class="heading"><div><small>AUSWERTUNG</small><h2>Deine Statistik</h2></div><button class="secondary" id="clearStats">Statistik löschen</button></div>
+<div class="dash"><div class="panel"><small>TRAININGSFRAGEN</small><b id="stAttempts">0</b></div><div class="panel"><small>RICHTIG</small><b id="stCorrect">0</b></div><div class="panel"><small>TREFFERQUOTE</small><b id="stAccuracy">0%</b></div><div class="panel"><small>PRÜFUNGEN</small><b id="stExams">0</b></div></div>
+<div class="two"><div class="panel detail"><h3>Alphabet-Übersicht</h3><p>NATO <span id="natoPct">0%</span></p><div class="bar"><i id="natoBar"></i></div><p>DEUTSCH <span id="dePct">0%</span></p><div class="bar"><i id="deBar"></i></div></div><div class="panel detail"><h3>Letzte Prüfungen</h3><div id="history">Noch keine Prüfungen absolviert.</div></div></div>
+<div class="panel detail"><h3>Fehlertraining</h3><div class="error-grid" id="errors"></div></div>
+</section>
+</main><footer>FUNKALPHABET TRAINER // BROWSER EDITION</footer>
+<script src="script.js" defer></script>
+</body></html>
