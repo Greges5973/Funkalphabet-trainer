@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07100d">
+    <title>DIGITAL FUNK ACADEMY</title>
 
-    <title>Digital Funk Academy – Funkalphabet Trainer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="style.css">
 </head>
@@ -12,1057 +16,581 @@
 <body>
 
 <header class="topbar">
-
     <div class="brand">
-
         <div class="brand-icon">◉</div>
-
         <div>
-            <div class="brand-title">
-                DIGITAL FUNK ACADEMY
+            <div class="brand-title">DIGITAL FUNK ACADEMY</div>
+            <div class="brand-subtitle">FUNKALPHABET TRAINER</div>
+        </div>
+    </div>
+
+    <div class="status-panel">
+        <span class="status-dot"></span>
+        <span>ONLINE</span>
+        <span class="status-divider">|</span>
+        <span>CH 01</span>
+    </div>
+
+    <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+
+    <nav id="mainNav">
+        <button data-page="home">START</button>
+        <button data-page="learn">LERNEN</button>
+        <button data-page="training">TRAINING</button>
+        <button data-page="exam">PRÜFUNG</button>
+        <button data-page="stats">STATISTIK</button>
+    </nav>
+</header>
+
+<main>
+
+<!-- ================= START ================= -->
+
+<section class="page active" id="home">
+
+    <div class="hero-panel">
+        <div class="hero-status">
+            <span class="status-dot"></span>
+            SYSTEM BEREIT
+        </div>
+
+        <div class="hero-content">
+            <div>
+                <div class="eyebrow">DIGITAL COMMUNICATION TRAINING</div>
+
+                <h1>
+                    FUNKSPRACHE<br>
+                    <span>RICHTIG LERNEN.</span>
+                </h1>
+
+                <p>
+                    Trainiere das NATO-Alphabet und das deutsche Funkalphabet
+                    schnell, übersichtlich und mit direktem Feedback.
+                </p>
+
+                <div class="hero-buttons">
+                    <button class="btn primary" data-page="training">
+                        TRAINING STARTEN
+                    </button>
+
+                    <button class="btn secondary" data-page="learn">
+                        ALPHABET LERNEN
+                    </button>
+                </div>
             </div>
 
-            <div class="brand-subtitle">
-                FUNKALPHABET TRAINER
+            <div class="radio-display">
+                <div class="radio-top">
+                    <span>RX</span>
+                    <span>FUNKTRAINER</span>
+                    <span>TX</span>
+                </div>
+
+                <div class="radio-frequency">
+                    145.500
+                    <small>MHz</small>
+                </div>
+
+                <div class="signal">
+                    <span>SIGNAL</span>
+                    <div class="signal-bars">
+                        <i></i><i></i><i></i><i></i><i></i>
+                    </div>
+                </div>
+
+                <div class="radio-bottom">
+                    <span>CH 01</span>
+                    <span>READY</span>
+                </div>
             </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+
+        <div class="dashboard-card">
+            <div class="card-label">NATO ALPHABET</div>
+            <div class="card-number" id="homeNatoAccuracy">0%</div>
+            <div class="card-info">Trefferquote</div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="card-label">DEUTSCHES FUNKALPHABET</div>
+            <div class="card-number" id="homeGermanAccuracy">0%</div>
+            <div class="card-info">Trefferquote</div>
+        </div>
+
+        <div class="dashboard-card warning-card">
+            <div class="card-label">OFFENE FEHLER</div>
+            <div class="card-number" id="homeErrorCount">0</div>
+            <div class="card-info">noch zu lernen</div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="card-label">PRÜFUNGEN</div>
+            <div class="card-number" id="homeExamCount">0</div>
+            <div class="card-info">abgeschlossen</div>
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= LERNEN ================= -->
+
+<section class="page" id="learn">
+
+    <div class="section-header">
+        <div>
+            <div class="eyebrow">REFERENCE DATABASE</div>
+            <h2>FUNKALPHABET</h2>
+            <p>Wähle das Alphabet aus, das du lernen möchtest.</p>
+        </div>
+
+        <div class="mode-switch">
+            <button class="active" data-learn-mode="nato">NATO</button>
+            <button data-learn-mode="deutsch">DEUTSCH</button>
+        </div>
+    </div>
+
+    <div class="alphabet-grid" id="learnGrid"></div>
+
+</section>
+
+
+<!-- ================= TRAINING ================= -->
+
+<section class="page" id="training">
+
+    <div class="section-header">
+        <div>
+            <div class="eyebrow">TRAINING MODE</div>
+            <h2>FUNKTRAINING</h2>
+            <p>Trainiere Buchstabe für Buchstabe.</p>
+        </div>
+
+        <div class="live-indicator">
+            <span class="status-dot"></span>
+            TRAINING AKTIV
+        </div>
+    </div>
+
+    <div class="training-layout">
+
+        <div class="training-main">
+
+            <div class="training-config">
+                <div>
+                    <span>ALPHABET</span>
+                    <strong id="trainingModeLabel">NATO</strong>
+                </div>
+
+                <div>
+                    <span>RICHTUNG</span>
+                    <strong>BUCHSTABE → FUNKWORT</strong>
+                </div>
+
+                <div>
+                    <span>MODUS</span>
+                    <strong id="trainingSourceLabel">ALLE BUCHSTABEN</strong>
+                </div>
+            </div>
+
+            <div class="training-card">
+
+                <div class="training-card-top">
+                    <span id="trainingErrorBadge" class="error-badge hidden">
+                        FEHLER LERNEN
+                    </span>
+
+                    <span id="trainingProgress">1 / 26</span>
+                </div>
+
+                <div class="training-question">
+                    <div class="question-label">BUCHSTABE</div>
+                    <div id="trainingPrompt" class="big-letter">A</div>
+                </div>
+
+                <div class="answer-area">
+
+                    <label for="trainingInput">
+                        FUNKWORT EINGEBEN
+                    </label>
+
+                    <input
+                        id="trainingInput"
+                        type="text"
+                        autocomplete="off"
+                        spellcheck="false"
+                        placeholder="Antwort eingeben..."
+                    >
+
+                    <button id="trainingAnswerBtn" class="btn primary full">
+                        ANTWORT SENDEN
+                    </button>
+
+                    <div id="trainingFeedback" class="feedback"></div>
+
+                </div>
+
+                <div class="training-stats">
+
+                    <div>
+                        <span>PUNKTE</span>
+                        <strong id="trainingScore">0</strong>
+                    </div>
+
+                    <div>
+                        <span>RICHTIG</span>
+                        <strong id="trainingCorrect">0</strong>
+                    </div>
+
+                    <div>
+                        <span>VERSUCHE</span>
+                        <strong id="trainingAttempts">0</strong>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <aside class="training-sidebar">
+
+            <div class="side-card">
+
+                <div class="side-title">
+                    ALPHABET AUSWÄHLEN
+                </div>
+
+                <div class="side-buttons">
+                    <button class="mode-button active" data-training-mode="nato">
+                        NATO ALPHABET
+                    </button>
+
+                    <button class="mode-button" data-training-mode="deutsch">
+                        DEUTSCHES FUNKALPHABET
+                    </button>
+                </div>
+
+            </div>
+
+
+            <div class="side-card">
+
+                <div class="side-title">
+                    TRAININGSMODUS
+                </div>
+
+                <div class="side-buttons">
+
+                    <button id="normalTrainingBtn" class="mode-button active">
+                        ALLE BUCHSTABEN
+                    </button>
+
+                    <button id="errorTrainingBtn" class="mode-button">
+                        FEHLER LERNEN
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div class="rule-card">
+
+                <div class="rule-icon">✓</div>
+
+                <div>
+                    <strong>3× REGEL</strong>
+                    <p>
+                        Ein Fehler gilt erst nach drei aufeinanderfolgenden
+                        richtigen Antworten als behoben.
+                    </p>
+                </div>
+
+            </div>
+
+        </aside>
+
+    </div>
+
+</section>
+
+
+<!-- ================= PRÜFUNG ================= -->
+
+<section class="page" id="exam">
+
+    <div class="section-header">
+        <div>
+            <div class="eyebrow">EXAMINATION MODE</div>
+            <h2>PRÜFUNG</h2>
+            <p>Teste dein Wissen unter Prüfungsbedingungen.</p>
+        </div>
+    </div>
+
+
+    <div id="examSetup" class="exam-setup">
+
+        <div class="exam-info-card">
+
+            <div class="exam-icon">◉</div>
+
+            <div>
+                <div class="eyebrow">PRÜFUNGSART</div>
+                <h3>BUCHSTABE → FUNKWORT</h3>
+                <p>
+                    Du bekommst einen Buchstaben angezeigt und musst
+                    das passende Funkwort eingeben.
+                </p>
+            </div>
+
+        </div>
+
+
+        <div class="exam-settings">
+
+            <label>
+                ALPHABET
+
+                <select id="examMode">
+                    <option value="nato">NATO Alphabet</option>
+                    <option value="deutsch">Deutsches Funkalphabet</option>
+                </select>
+            </label>
+
+
+            <label>
+                ANZAHL FRAGEN
+
+                <select id="examCount">
+                    <option value="10">10 Fragen</option>
+                    <option value="20">20 Fragen</option>
+                    <option value="all">Alle</option>
+                </select>
+            </label>
+
+
+            <button id="startExamBtn" class="btn primary">
+                PRÜFUNG STARTEN
+            </button>
+
         </div>
 
     </div>
 
 
-    <nav class="nav">
+    <div id="examArea" class="exam-area hidden">
 
-        <button
-            class="nav-btn active"
-            data-page="home">
-            START
-        </button>
-
-        <button
-            class="nav-btn"
-            data-page="learn">
-            LERNEN
-        </button>
-
-        <button
-            class="nav-btn"
-            data-page="training">
-            TRAINING
-        </button>
-
-        <button
-            class="nav-btn"
-            data-page="exam">
-            PRÜFUNG
-        </button>
-
-        <button
-            class="nav-btn"
-            data-page="stats">
-            STATISTIK
-        </button>
-
-    </nav>
-
-</header>
-
-
-<main class="container">
-
-
-    <!-- =====================================================
-         STARTSEITE
-         ===================================================== -->
-
-    <section
-        id="home"
-        class="page active">
-
-        <div class="hero">
-
-            <div class="hero-content">
-
-                <div class="eyebrow">
-                    DIGITAL FUNK ACADEMY
-                </div>
-
-                <h1>
-                    FUNKALPHABET<br>
-                    <span>TRAINER</span>
-                </h1>
-
-                <p>
-                    Lerne und trainiere das Funkalphabet
-                    schnell, übersichtlich und effektiv.
-                </p>
-
-                <div class="hero-buttons">
-
-                    <button
-                        class="btn primary"
-                        data-page="training">
-
-                        TRAINING STARTEN
-
-                    </button>
-
-
-                    <button
-                        class="btn secondary"
-                        data-page="learn">
-
-                        ALPHABET LERNEN
-
-                    </button>
-
-                </div>
-
-            </div>
-
-
-            <div class="hero-panel">
-
-                <div class="panel-title">
-                    SYSTEM STATUS
-                </div>
-
-
-                <div class="status-row">
-
-                    <span>
-                        TRAINER
-                    </span>
-
-                    <strong class="online">
-                        ONLINE
-                    </strong>
-
-                </div>
-
-
-                <div class="status-row">
-
-                    <span>
-                        MODUS
-                    </span>
-
-                    <strong>
-                        NATO / DEUTSCH
-                    </strong>
-
-                </div>
-
-
-                <div class="status-row">
-
-                    <span>
-                        PRÜFUNG
-                    </span>
-
-                    <strong>
-                        BEREIT
-                    </strong>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="home-grid">
-
-
-            <div class="info-card">
-
-                <div class="card-icon">
-                    01
-                </div>
-
-                <h3>
-                    LERNEN
-                </h3>
-
-                <p>
-                    Schau dir das Funkalphabet in Ruhe an
-                    und lerne die passenden Funkwörter.
-                </p>
-
-            </div>
-
-
-            <div class="info-card">
-
-                <div class="card-icon">
-                    02
-                </div>
-
-                <h3>
-                    TRAINIEREN
-                </h3>
-
-                <p>
-                    Trainiere einzelne Buchstaben und
-                    wiederhole deine Fehler automatisch.
-                </p>
-
-            </div>
-
-
-            <div class="info-card">
-
-                <div class="card-icon">
-                    03
-                </div>
-
-                <h3>
-                    PRÜFUNG
-                </h3>
-
-                <p>
-                    Teste dein Wissen mit einer vollständigen
-                    Prüfung.
-                </p>
-
-            </div>
-
-        </div>
-
-    </section>
-
-
-
-    <!-- =====================================================
-         LERNEN
-         ===================================================== -->
-
-    <section
-        id="learn"
-        class="page">
-
-
-        <div class="section-header">
+        <div class="exam-header">
 
             <div>
-
-                <div class="eyebrow">
-                    REFERENCE
-                </div>
-
-                <h2>
-                    FUNKALPHABET LERNEN
-                </h2>
-
+                <span>FRAGE</span>
+                <strong id="examCounter">1 / 10</strong>
             </div>
 
-
-            <div class="mode-switch">
-
-                <button
-                    class="mode-btn active"
-                    data-learn-mode="nato">
-
-                    NATO
-
-                </button>
-
-
-                <button
-                    class="mode-btn"
-                    data-learn-mode="deutsch">
-
-                    DEUTSCH
-
-                </button>
-
+            <div class="exam-progress-wrap">
+                <div class="exam-progress">
+                    <div id="examProgress"></div>
+                </div>
             </div>
 
         </div>
-
-
-        <div class="learn-card">
-
-            <div
-                id="learnGrid"
-                class="alphabet-grid">
-            </div>
-
-        </div>
-
-    </section>
-
-
-
-    <!-- =====================================================
-         TRAINING
-         ===================================================== -->
-
-    <section
-        id="training"
-        class="page">
-
-
-        <div class="section-header">
-
-            <div>
-
-                <div class="eyebrow">
-                    TRAINING
-                </div>
-
-                <h2>
-                    FUNKALPHABET TRAINIEREN
-                </h2>
-
-            </div>
-
-        </div>
-
-
-        <div class="training-layout">
-
-
-            <!-- TRAININGSKARTE -->
-
-            <div class="training-card">
-
-
-                <div class="training-top">
-
-
-                    <div>
-
-                        <span class="label">
-                            MODUS
-                        </span>
-
-                        <strong id="trainingModeLabel">
-                            NATO
-                        </strong>
-
-                    </div>
-
-
-                    <div>
-
-                        <span class="label">
-                            RICHTUNG
-                        </span>
-
-                        <strong id="trainingDirectionLabel">
-                            BUCHSTABE → FUNKWORT
-                        </strong>
-
-                    </div>
-
-                </div>
-
-
-
-                <div class="training-settings">
-
-
-                    <div class="field">
-
-                        <label>
-                            FUNKALPHABET
-                        </label>
-
-                        <div class="mode-switch">
-
-                            <button
-                                class="mode-btn active"
-                                data-training-mode="nato">
-
-                                NATO
-
-                            </button>
-
-
-                            <button
-                                class="mode-btn"
-                                data-training-mode="deutsch">
-
-                                DEUTSCH
-
-                            </button>
-
-                        </div>
-
-                    </div>
-
-
-                </div>
-
-
-
-                <div class="training-question">
-
-
-                    <div
-                        class="training-direction">
-
-                        BUCHSTABE → FUNKWORT
-
-                    </div>
-
-
-                    <div
-                        id="trainingPrompt"
-                        class="training-prompt">
-
-                        A
-
-                    </div>
-
-
-                    <div
-                        id="trainingErrorBadge"
-                        class="training-error-badge">
-
-                    </div>
-
-
-                    <div
-                        class="training-input-row">
-
-
-                        <input
-                            id="trainingInput"
-                            type="text"
-                            autocomplete="off"
-                            placeholder="Funkwort eingeben...">
-
-
-                        <button
-                            id="trainingAnswerBtn"
-                            class="btn primary">
-
-                            ANTWORT PRÜFEN
-
-                        </button>
-
-                    </div>
-
-
-                    <div
-                        id="trainingFeedback"
-                        class="training-feedback">
-
-                    </div>
-
-
-                </div>
-
-
-
-                <div class="progress">
-
-                    <div
-                        id="trainingProgress"
-                        class="progress-bar">
-                    </div>
-
-                </div>
-
-
-
-                <div class="training-stats">
-
-
-                    <div class="training-stat">
-
-                        <strong
-                            id="trainingScore">
-                            0
-                        </strong>
-
-                        <span>
-                            PUNKTE
-                        </span>
-
-                    </div>
-
-
-                    <div class="training-stat">
-
-                        <strong
-                            id="trainingCorrect">
-                            0
-                        </strong>
-
-                        <span>
-                            RICHTIG
-                        </span>
-
-                    </div>
-
-
-                    <div class="training-stat">
-
-                        <strong
-                            id="trainingAttempts">
-                            0
-                        </strong>
-
-                        <span>
-                            VERSUCHE
-                        </span>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-
-            <!-- TRAINING SIDEBAR -->
-
-            <div class="training-sidebar">
-
-
-                <div class="training-side-card">
-
-                    <h3>
-                        TRAINING
-                    </h3>
-
-                    <p>
-                        Starte ein normales Training mit
-                        allen Buchstaben.
-                    </p>
-
-                    <button
-                        id="normalTrainingBtn"
-                        class="btn secondary">
-
-                        NORMALES TRAINING
-
-                    </button>
-
-                </div>
-
-
-
-                <div class="training-side-card">
-
-                    <h3>
-                        FEHLER LERNEN
-                    </h3>
-
-                    <p>
-                        Wiederhole nur deine gespeicherten
-                        Fehler.
-                    </p>
-
-                    <button
-                        id="errorTrainingBtn"
-                        class="btn secondary">
-
-                        FEHLER LERNEN
-
-                    </button>
-
-                </div>
-
-
-                <div class="training-side-card">
-
-                    <h3>
-                        3× REGEL
-                    </h3>
-
-                    <p>
-                        Ein Fehler wird erst entfernt,
-                        wenn du ihn dreimal hintereinander
-                        richtig beantwortet hast.
-                    </p>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </section>
-
-
-
-    <!-- =====================================================
-         PRÜFUNG
-         ===================================================== -->
-
-    <section
-        id="exam"
-        class="page">
-
-
-        <div class="section-header">
-
-            <div>
-
-                <div class="eyebrow">
-                    PRÜFUNG
-                </div>
-
-                <h2>
-                    PRÜFUNG STARTEN
-                </h2>
-
-            </div>
-
-        </div>
-
 
 
         <div class="exam-card">
 
-
-            <!-- PRÜFUNGS-EINSTELLUNGEN -->
-
-            <div
-                id="examSetup">
-
-
-                <div class="exam-settings">
-
-
-                    <div class="field">
-
-                        <label>
-                            FUNKALPHABET
-                        </label>
-
-                        <select
-                            id="examMode">
-
-                            <option value="nato">
-                                NATO
-                            </option>
-
-                            <option value="deutsch">
-                                DEUTSCH
-                            </option>
-
-                        </select>
-
-                    </div>
-
-
-
-                    <div class="field">
-
-                        <label>
-                            ANZAHL FRAGEN
-                        </label>
-
-                        <select
-                            id="examCount">
-
-                            <option value="5">
-                                5 Fragen
-                            </option>
-
-                            <option
-                                value="10"
-                                selected>
-
-                                10 Fragen
-
-                            </option>
-
-                            <option value="15">
-                                15 Fragen
-                            </option>
-
-                            <option value="20">
-                                20 Fragen
-                            </option>
-
-                            <option value="26">
-                                Alle Buchstaben
-                            </option>
-
-                        </select>
-
-                    </div>
-
-                </div>
-
-
-                <!--
-                    KEINE RICHTUNGSAUSWAHL!
-
-                    Die Prüfung ist immer:
-                    BUCHSTABE → FUNKWORT
-                -->
-
-                <div
-                    class="training-side-card"
-                    style="margin-top:20px;">
-
-                    <h3>
-                        PRÜFUNGSART
-                    </h3>
-
-                    <p>
-                        Du bekommst einen Buchstaben
-                        angezeigt und musst das passende
-                        Funkwort eingeben.
-                    </p>
-
-                    <strong
-                        style="color:var(--cyan);">
-
-                        BUCHSTABE → FUNKWORT
-
-                    </strong>
-
-                </div>
-
-
-                <div
-                    style="
-                        margin-top:20px;
-                        text-align:center;
-                    ">
-
-                    <button
-                        id="startExamBtn"
-                        class="btn primary">
-
-                        PRÜFUNG STARTEN
-
-                    </button>
-
-                </div>
-
+            <div class="question-label">
+                BUCHSTABE
             </div>
 
-
-
-            <!-- PRÜFUNGSBEREICH -->
-
-            <div
-                id="examArea"
-                style="display:none;">
-
-
-                <div
-                    class="exam-counter"
-                    id="examCounter">
-
-                    1 / 10
-
-                </div>
-
-
-                <div class="progress">
-
-                    <div
-                        id="examProgress"
-                        class="progress-bar">
-                    </div>
-
-                </div>
-
-
-                <div class="exam-question">
-
-
-                    <div
-                        id="examQuestion"
-                        class="exam-letter">
-
-                        A
-
-                    </div>
-
-
-                    <div
-                        class="exam-input-row">
-
-
-                        <input
-                            id="examInput"
-                            type="text"
-                            autocomplete="off"
-                            placeholder="Funkwort eingeben...">
-
-
-                        <button
-                            id="examAnswerBtn"
-                            class="btn primary">
-
-                            ANTWORT PRÜFEN
-
-                        </button>
-
-                    </div>
-
-
-                    <div
-                        id="examFeedback"
-                        class="exam-feedback">
-
-                    </div>
-
-                </div>
-
+            <div id="examQuestion" class="exam-letter">
+                A
             </div>
 
+            <label for="examInput">
+                FUNKWORT
+            </label>
+
+            <input
+                id="examInput"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Funkwort eingeben..."
+            >
+
+            <button id="examAnswerBtn" class="btn primary full">
+                ANTWORT SENDEN
+            </button>
+
+            <div id="examFeedback" class="feedback"></div>
+
+        </div>
+
+    </div>
 
 
-            <!-- PRÜFUNGSERGEBNIS -->
+    <div id="examResult" class="exam-result hidden">
 
-            <div
-                id="examResult"
-                class="exam-result"
-                style="display:none;">
+        <div class="result-main">
 
+            <div class="eyebrow">PRÜFUNG ABGESCHLOSSEN</div>
 
-                <div class="eyebrow">
-                    PRÜFUNG ABGESCHLOSSEN
+            <div id="examPercent" class="result-percent">
+                0%
+            </div>
+
+            <div class="result-summary">
+
+                <div>
+                    <span>RICHTIG</span>
+                    <strong id="examCorrect">0</strong>
                 </div>
 
-
-                <h2>
-                    DEIN ERGEBNIS
-                </h2>
-
-
-                <div
-                    id="examResultPercent"
-                    class="result-percent">
-
-                    0%
-
+                <div>
+                    <span>FALSCH</span>
+                    <strong id="examWrong">0</strong>
                 </div>
 
-
-                <div class="result-grid">
-
-
-                    <div class="result-box">
-
-                        <strong
-                            id="examResultCorrect">
-
-                            0
-
-                        </strong>
-
-                        <span>
-                            RICHTIG
-                        </span>
-
-                    </div>
-
-
-                    <div class="result-box">
-
-                        <strong
-                            id="examResultWrong">
-
-                            0
-
-                        </strong>
-
-                        <span>
-                            FALSCH
-                        </span>
-
-                    </div>
-
-
-                    <div class="result-box">
-
-                        <strong
-                            id="examResultTime">
-
-                            0s
-
-                        </strong>
-
-                        <span>
-                            ZEIT
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div class="result-buttons">
-
-
-                    <button
-                        id="repeatExamBtn"
-                        class="btn secondary">
-
-                        PRÜFUNG WIEDERHOLEN
-
-                    </button>
-
-
-                    <button
-                        id="examErrorTrainingBtn"
-                        class="btn primary">
-
-                        FEHLER LERNEN
-
-                    </button>
-
+                <div>
+                    <span>ZEIT</span>
+                    <strong id="examTime">0:00</strong>
                 </div>
 
             </div>
 
         </div>
 
-    </section>
+
+        <div class="result-actions">
+
+            <button id="repeatExamBtn" class="btn primary">
+                PRÜFUNG WIEDERHOLEN
+            </button>
+
+            <button id="examErrorTrainingBtn" class="btn secondary">
+                FEHLER LERNEN
+            </button>
+
+        </div>
+
+    </div>
+
+</section>
 
 
+<!-- ================= STATISTIK ================= -->
 
-    <!-- =====================================================
-         STATISTIK
-         ===================================================== -->
+<section class="page" id="statsPage">
 
-    <section
-        id="statsPage"
-        class="page">
+    <div class="section-header">
+        <div>
+            <div class="eyebrow">PERFORMANCE MONITOR</div>
+            <h2>STATISTIK</h2>
+            <p>Dein persönlicher Lernfortschritt.</p>
+        </div>
+    </div>
 
 
-        <div class="section-header">
+    <div class="stats-grid">
+
+        <div class="stat-card">
+            <span>NATO VERSUCHE</span>
+            <strong id="statsNatoAttempts">0</strong>
+        </div>
+
+        <div class="stat-card">
+            <span>NATO RICHTIG</span>
+            <strong id="statsNatoCorrect">0</strong>
+        </div>
+
+        <div class="stat-card">
+            <span>DEUTSCH VERSUCHE</span>
+            <strong id="statsDeutschAttempts">0</strong>
+        </div>
+
+        <div class="stat-card">
+            <span>DEUTSCH RICHTIG</span>
+            <strong id="statsDeutschCorrect">0</strong>
+        </div>
+
+        <div class="stat-card">
+            <span>PRÜFUNGEN</span>
+            <strong id="statsExams">0</strong>
+        </div>
+
+        <div class="stat-card warning-card">
+            <span>OFFENE FEHLER</span>
+            <strong id="statsErrors">0</strong>
+        </div>
+
+    </div>
+
+
+    <div class="stats-panels">
+
+        <div class="panel">
+
+            <div class="panel-header">
+                <div>
+                    <div class="eyebrow">NATO</div>
+                    <h3>LEISTUNGSFORTSCHRITT</h3>
+                </div>
+            </div>
+
+            <div class="progress-list" id="natoProgressList"></div>
+
+        </div>
+
+
+        <div class="panel">
+
+            <div class="panel-header">
+                <div>
+                    <div class="eyebrow">DEUTSCH</div>
+                    <h3>LEISTUNGSFORTSCHRITT</h3>
+                </div>
+            </div>
+
+            <div class="progress-list" id="germanProgressList"></div>
+
+        </div>
+
+    </div>
+
+
+    <div class="panel">
+
+        <div class="panel-header">
 
             <div>
-
-                <div class="eyebrow">
-                    AUSWERTUNG
-                </div>
-
-                <h2>
-                    DEINE STATISTIK
-                </h2>
-
+                <div class="eyebrow">ERROR LOG</div>
+                <h3>OFFENE FEHLER</h3>
             </div>
 
         </div>
 
+        <div id="statsErrorList" class="error-list"></div>
 
+    </div>
 
-        <div class="stats-grid">
-
-
-            <div class="stat-card">
-
-                <strong
-                    id="statsNatoAttempts">
-                    0
-                </strong>
-
-                <span>
-                    NATO VERSUCHE
-                </span>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <strong
-                    id="statsNatoCorrect">
-                    0
-                </strong>
-
-                <span>
-                    NATO RICHTIG
-                </span>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <strong
-                    id="statsDeutschAttempts">
-                    0
-                </strong>
-
-                <span>
-                    DEUTSCH VERSUCHE
-                </span>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <strong
-                    id="statsDeutschCorrect">
-                    0
-                </strong>
-
-                <span>
-                    DEUTSCH RICHTIG
-                </span>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <strong
-                    id="statsExams">
-                    0
-                </strong>
-
-                <span>
-                    PRÜFUNGEN
-                </span>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <strong
-                    id="statsErrors">
-                    0
-                </strong>
-
-                <span>
-                    OFFENE FEHLER
-                </span>
-
-            </div>
-
-        </div>
-
-
-
-        <div style="margin-top:30px;">
-
-            <div class="eyebrow">
-                FEHLERANALYSE
-            </div>
-
-            <h2>
-                DEINE FEHLER
-            </h2>
-
-        </div>
-
-
-        <div
-            id="statsErrorList"
-            class="error-list">
-
-        </div>
-
-    </section>
+</section>
 
 </main>
+
+
+<footer>
+    <span>DIGITAL FUNK ACADEMY</span>
+    <span>•</span>
+    <span>FUNKALPHABET TRAINER</span>
+    <span>•</span>
+    <span>V5.0</span>
+</footer>
 
 
 <script src="script.js"></script>
