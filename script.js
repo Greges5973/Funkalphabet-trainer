@@ -1,1297 +1,1907 @@
+/* =========================================================
+   DIGITAL FUNK ACADEMY
+   FUNKALPHABET TRAINER
+   VERSION 4.1
+   ========================================================= */
+
 const DATA = {
-  nato: [
-    ['A','Alpha'], ['B','Bravo'], ['C','Charlie'], ['D','Delta'],
-    ['E','Echo'], ['F','Foxtrot'], ['G','Golf'], ['H','Hotel'],
-    ['I','India'], ['J','Juliett'], ['K','Kilo'], ['L','Lima'],
-    ['M','Mike'], ['N','November'], ['O','Oscar'], ['P','Papa'],
-    ['Q','Quebec'], ['R','Romeo'], ['S','Sierra'], ['T','Tango'],
-    ['U','Uniform'], ['V','Victor'], ['W','Whiskey'], ['X','X-ray'],
-    ['Y','Yankee'], ['Z','Zulu']
-  ],
+    nato: [
+        ["A", "Alpha"],
+        ["B", "Bravo"],
+        ["C", "Charlie"],
+        ["D", "Delta"],
+        ["E", "Echo"],
+        ["F", "Foxtrot"],
+        ["G", "Golf"],
+        ["H", "Hotel"],
+        ["I", "India"],
+        ["J", "Juliett"],
+        ["K", "Kilo"],
+        ["L", "Lima"],
+        ["M", "Mike"],
+        ["N", "November"],
+        ["O", "Oscar"],
+        ["P", "Papa"],
+        ["Q", "Quebec"],
+        ["R", "Romeo"],
+        ["S", "Sierra"],
+        ["T", "Tango"],
+        ["U", "Uniform"],
+        ["V", "Victor"],
+        ["W", "Whiskey"],
+        ["X", "X-ray"],
+        ["Y", "Yankee"],
+        ["Z", "Zulu"]
+    ],
 
-  deutsch: [
-    ['A','Aachen'], ['Ä','Umlaut Aachen'], ['B','Berlin'],
-    ['C','Chemnitz'], ['D','Düsseldorf'], ['E','Essen'],
-    ['F','Frankfurt'], ['G','Goslar'], ['H','Hamburg'],
-    ['I','Ingelheim'], ['J','Jena'], ['K','Köln'],
-    ['L','Leipzig'], ['M','München'], ['N','Nürnberg'],
-    ['O','Offenbach'], ['Ö','Umlaut Offenbach'], ['P','Potsdam'],
-    ['Q','Quickborn'], ['R','Rostock'], ['S','Salzwedel'],
-    ['ß','Eszett'], ['T','Tübingen'], ['U','Unna'],
-    ['Ü','Umlaut Unna'], ['V','Völklingen'], ['W','Wuppertal'],
-    ['X','Xanten'], ['Y','Ypsilon'], ['Z','Zwickau']
-  ]
+    deutsch: [
+        ["A", "Aachen"],
+        ["Ä", "Umlaut Aachen"],
+        ["B", "Berlin"],
+        ["C", "Chemnitz"],
+        ["D", "Düsseldorf"],
+        ["E", "Essen"],
+        ["F", "Frankfurt"],
+        ["G", "Goslar"],
+        ["H", "Hamburg"],
+        ["I", "Ingelheim"],
+        ["J", "Jena"],
+        ["K", "Köln"],
+        ["L", "Leipzig"],
+        ["M", "München"],
+        ["N", "Nürnberg"],
+        ["O", "Offenbach"],
+        ["Ö", "Umlaut Offenbach"],
+        ["P", "Potsdam"],
+        ["Q", "Quickborn"],
+        ["R", "Rostock"],
+        ["S", "Salzwedel"],
+        ["ß", "Eszett"],
+        ["T", "Tübingen"],
+        ["U", "Unna"],
+        ["Ü", "Umlaut Unna"],
+        ["V", "Völklingen"],
+        ["W", "Wuppertal"],
+        ["X", "Xanten"],
+        ["Y", "Ypsilon"],
+        ["Z", "Zwickau"]
+    ]
 };
 
-const KEY = 'funkalphabet-trainer-v4';
 
-let S = {
-  training: {
-    mode: 'nato',
-    source: 'all',
-    direction: 'letter',
-    index: 0,
-    score: 0,
-    correct: 0,
-    attempts: 0,
-    solved: [],
-    errors: {},
-    streaks: {}
-  },
+/* =========================================================
+   SPEICHER
+   ========================================================= */
 
-  stats: {
-    natoAttempts: 0,
-    natoCorrect: 0,
-    deutschAttempts: 0,
-    deutschCorrect: 0,
-    exams: 0,
-    history: []
-  }
+const STORAGE_KEY = "funkalphabet-trainer-v41";
+
+let state = {
+    training: {
+        mode: "nato",
+
+        // WICHTIG:
+        // Training IMMER Buchstabe -> Funkwort
+        direction: "letter",
+
+        source: "all",
+        index: 0,
+
+        score: 0,
+        correct: 0,
+        attempts: 0,
+
+        solved: [],
+
+        errors: {},
+        streaks: {},
+
+        answered: false
+    },
+
+    stats: {
+        natoAttempts: 0,
+        natoCorrect: 0,
+
+        deutschAttempts: 0,
+        deutschCorrect: 0,
+
+        exams: 0,
+
+        history: []
+    }
 };
 
-let learnMode = 'nato';
-let learnIndex = 0;
 
-let exam = {
-  mode: 'nato',
-  count: 20,
-  order: 'random',
-  direction: 'letter'
-};
-
-let questions = [];
-let qi = 0;
-let qcorrect = 0;
-let qerrors = [];
-let qstart = 0;
-let timer = null;
-
-
-// --------------------------------------------------
-// HILFSFUNKTIONEN
-// --------------------------------------------------
-
-const $ = id => document.getElementById(id);
-
-function norm(value) {
-  return String(value || '')
-    .normalize('NFC')
-    .trim()
-    .toLocaleLowerCase('de-DE')
-    .replace(/\s+/g, ' ');
-}
-
-function save() {
-  localStorage.setItem(KEY, JSON.stringify(S));
-}
-
-function load() {
-  try {
-    const old = JSON.parse(localStorage.getItem(KEY));
-
-    if (!old) return;
-
-    S = {
-      ...S,
-      ...old,
-      training: {
-        ...S.training,
-        ...old.training
-      },
-      stats: {
-        ...S.stats,
-        ...old.stats
-      }
-    };
-
-  } catch (e) {
-    console.warn('Daten konnten nicht geladen werden.', e);
-  }
-}
-
-function speak(text) {
-  if (!window.speechSynthesis) return;
-
-  speechSynthesis.cancel();
-
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'de-DE';
-  u.rate = 0.82;
-
-  speechSynthesis.speak(u);
-}
-
-function time(seconds) {
-  return String(Math.floor(seconds / 60)).padStart(2, '0')
-    + ':'
-    + String(seconds % 60).padStart(2, '0');
-}
-
-
-// --------------------------------------------------
-// SEITEN-NAVIGATION
-// --------------------------------------------------
-
-function page(name) {
-
-  document.querySelectorAll('.page').forEach(p => {
-    p.classList.remove('active');
-  });
-
-  const pageId = name === 'stats' ? 'statsPage' : name;
-  const target = $(pageId);
-
-  if (!target) return;
-
-  target.classList.add('active');
-
-  document.querySelectorAll('.nav').forEach(button => {
-    button.classList.toggle(
-      'active',
-      button.dataset.page === name
+function saveState() {
+    localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(state)
     );
-  });
-
-  if (name === 'learn') renderLearn();
-  if (name === 'training') renderTrain();
-  if (name === 'stats') renderStats();
-  if (name === 'exam') summary();
 }
 
 
-// --------------------------------------------------
-// LERNEN
-// --------------------------------------------------
+function loadState() {
+
+    try {
+
+        const saved =
+            localStorage.getItem(STORAGE_KEY);
+
+        if (!saved) return;
+
+        const parsed = JSON.parse(saved);
+
+        if (parsed.training) {
+            state.training = {
+                ...state.training,
+                ...parsed.training
+            };
+        }
+
+        if (parsed.stats) {
+            state.stats = {
+                ...state.stats,
+                ...parsed.stats
+            };
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Speicher konnte nicht geladen werden.",
+            error
+        );
+
+    }
+
+    // Sicherheit:
+    // Training niemals Funkwort -> Buchstabe
+    state.training.direction = "letter";
+}
+
+
+/* =========================================================
+   HILFSFUNKTIONEN
+   ========================================================= */
+
+function getData(mode) {
+    return DATA[mode] || DATA.nato;
+}
+
+
+function normalize(text) {
+
+    return String(text || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+}
+
+
+function getPageElement(name) {
+
+    if (name === "stats") {
+        return document.getElementById("statsPage");
+    }
+
+    return document.getElementById(name);
+}
+
+
+function showPage(name) {
+
+    document
+        .querySelectorAll(".page")
+        .forEach(page => {
+            page.classList.remove("active");
+        });
+
+    const target = getPageElement(name);
+
+    if (target) {
+        target.classList.add("active");
+    }
+
+    document
+        .querySelectorAll(".nav-btn")
+        .forEach(button => {
+
+            button.classList.toggle(
+                "active",
+                button.dataset.page === name
+            );
+
+        });
+
+    if (name === "learn") {
+        renderLearn();
+    }
+
+    if (name === "training") {
+        renderTraining();
+    }
+
+    if (name === "stats") {
+        renderStats();
+    }
+
+    if (name === "exam") {
+        renderExam();
+    }
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
+
+
+/* =========================================================
+   LERNEN
+   ========================================================= */
+
+let learnMode = "nato";
+
 
 function renderLearn() {
 
-  const list = DATA[learnMode];
-  const current = list[learnIndex];
+    const grid =
+        document.getElementById("learnGrid");
 
-  if (!current) return;
+    if (!grid) return;
 
-  $('learnCount').textContent =
-    `${learnIndex + 1} / ${list.length}`;
+    const data = getData(learnMode);
 
-  $('learnLetter').textContent = current[0];
-  $('learnWord').textContent = current[1];
+    grid.innerHTML = "";
 
-  document.querySelectorAll('[data-learn]').forEach(button => {
-    button.classList.toggle(
-      'active',
-      button.dataset.learn === learnMode
-    );
-  });
+    data.forEach(item => {
 
-  $('learnGrid').innerHTML = list.map((item, index) => `
-    <button
-      class="${index === learnIndex ? 'current' : ''}"
-      data-li="${index}">
-      <b>${item[0]}</b>
-      <small>${item[1]}</small>
-    </button>
-  `).join('');
+        const card =
+            document.createElement("div");
 
-  document.querySelectorAll('[data-li]').forEach(button => {
+        card.className = "alphabet-card";
 
-    button.onclick = () => {
-      learnIndex = Number(button.dataset.li);
-      renderLearn();
-    };
+        card.innerHTML = `
+            <div class="alphabet-letter">
+                ${item[0]}
+            </div>
 
-  });
+            <div class="alphabet-word">
+                ${item[1]}
+            </div>
+        `;
+
+        grid.appendChild(card);
+    });
 }
 
 
-// --------------------------------------------------
-// TRAINING
-// --------------------------------------------------
+/* =========================================================
+   TRAINING
+   ========================================================= */
+
+/*
+    WICHTIG:
+
+    Training besitzt KEINE Richtungsauswahl.
+
+    Es gibt ausschließlich:
+
+    BUCHSTABE -> FUNKWORT
+*/
+
 
 function getTrainingPool() {
 
-  const list = DATA[S.training.mode];
-
-  if (S.training.source === 'errors') {
-
-    const errors = list.filter(item => {
-      return S.training.errors[item[0]];
-    });
-
-    return errors.length ? errors : list;
-  }
-
-  return list;
-}
-
-function renderTrain() {
-
-  const pool = getTrainingPool();
-
-  if (!pool.length) return;
-
-  if (S.training.index >= pool.length) {
-    S.training.index = 0;
-  }
-
-  const item = pool[S.training.index];
-
-  const reverse = S.training.direction === 'word';
-
-  $('prompt').textContent =
-    reverse ? item[1] : item[0];
-
-  $('trainLabel').textContent =
-    reverse
-      ? 'FUNKWORT EINGEGANGEN'
-      : 'BUCHSTABE EINGEGANGEN';
-
-  $('question').textContent =
-    reverse
-      ? 'Welcher Buchstabe gehört dazu?'
-      : 'Wie lautet das Funkwort?';
-
-  $('answer').placeholder =
-    reverse
-      ? 'Buchstabe eingeben …'
-      : 'Funkwort eingeben …';
-
-  $('answer').value = '';
-
-  $('trainFeedback').className = 'feedback';
-
-  $('trainButton').textContent =
-    'PRÜFEN';
-
-  S.training.answered = false;
-
-  $('trainMode').textContent =
-    S.training.mode === 'nato'
-      ? 'NATO-ALPHABET'
-      : 'DEUTSCHE BUCHSTABIERTAFEL';
-
-  document.querySelectorAll('[data-train]').forEach(button => {
-    button.classList.toggle(
-      'active',
-      button.dataset.train === S.training.mode
-    );
-  });
-
-  document.querySelectorAll('[data-source]').forEach(button => {
-    button.classList.toggle(
-      'active',
-      button.dataset.source === S.training.source
-    );
-  });
-
-  $('direction').textContent =
-    reverse
-      ? 'Richtung: Funkwort → Buchstabe'
-      : 'Richtung: Buchstabe → Funkwort';
-
-  $('errorBadge').textContent =
-    Object.keys(S.training.errors).length;
-
-  renderTrainingStats();
-  renderTrainingGrid();
-
-  setTimeout(() => $('answer')?.focus(), 20);
-}
-
-
-// --------------------------------------------------
-// TRAINING ANTWORT
-// --------------------------------------------------
-
-function answerTrain(event) {
-
-  event.preventDefault();
-
-  /*
-   * Wenn bereits geantwortet wurde,
-   * geht es mit dem nächsten Buchstaben weiter.
-   *
-   * Dadurch kann man auch nach einer falschen
-   * Antwort problemlos weitermachen.
-   */
-
-  if (S.training.answered) {
-
-    const pool = getTrainingPool();
-
-    S.training.index =
-      (S.training.index + 1) % pool.length;
-
-    renderTrain();
-
-    return;
-  }
-
-  const pool = getTrainingPool();
-  const item = pool[S.training.index];
-
-  const reverse =
-    S.training.direction === 'word';
-
-  const answer = norm($('answer').value);
-
-  const expected =
-    reverse
-      ? item[0]
-      : item[1];
-
-  if (!answer) {
-
-    showFeedback(
-      $('trainFeedback'),
-      'Bitte gib eine Antwort ein.',
-      false
-    );
-
-    return;
-  }
-
-  S.training.attempts++;
-
-  S.stats[
-    S.training.mode + 'Attempts'
-  ]++;
-
-  if (answer === norm(expected)) {
-
-    S.training.correct++;
-
-    S.training.score += 10;
-
-    S.stats[
-      S.training.mode + 'Correct'
-    ]++;
-
-    /*
-     * 3x richtig hintereinander:
-     * Nur bei Buchstabe → Funkwort
-     * wird ein Fehler entfernt.
-     */
+    const data =
+        getData(state.training.mode);
 
     if (
-      S.training.direction === 'letter'
-      && S.training.errors[item[0]]
+        state.training.source === "errors"
     ) {
 
-      if (!S.training.streaks[item[0]]) {
-        S.training.streaks[item[0]] = 0;
-      }
+        const errors =
+            Object.keys(state.training.errors);
 
-      S.training.streaks[item[0]]++;
+        const pool =
+            data.filter(item =>
+                errors.includes(item[0])
+            );
 
-      if (S.training.streaks[item[0]] >= 3) {
-
-        delete S.training.errors[item[0]];
-        delete S.training.streaks[item[0]];
-
-        showFeedback(
-          $('trainFeedback'),
-          `✓ Richtig! ${item[0]} ist jetzt sicher gelernt.`,
-          true
-        );
-
-      } else {
-
-        showFeedback(
-          $('trainFeedback'),
-          `✓ Richtig! Noch ${
-            3 - S.training.streaks[item[0]]
-          }× richtig für "gelernt".`,
-          true
-        );
-      }
-
-    } else {
-
-      showFeedback(
-        $('trainFeedback'),
-        `✓ Richtig! ${item[0]} = ${item[1]}`,
-        true
-      );
+        // Falls keine Fehler vorhanden sind,
+        // bleibt die Liste leer.
+        return pool;
     }
 
-    if (!S.training.solved.includes(item[0])) {
-      S.training.solved.push(item[0]);
+    return data;
+}
+
+
+function getCurrentTrainingItem() {
+
+    const pool =
+        getTrainingPool();
+
+    if (!pool.length) {
+        return null;
     }
 
-  } else {
-
-    S.training.score =
-      Math.max(0, S.training.score - 2);
-
-    /*
-     * Fehler zählen und Lernserie zurücksetzen.
-     */
-
-    if (S.training.direction === 'letter') {
-
-      S.training.errors[item[0]] =
-        (S.training.errors[item[0]] || 0) + 1;
-
-      S.training.streaks[item[0]] = 0;
+    if (
+        state.training.index >= pool.length
+    ) {
+        state.training.index = 0;
     }
 
-    showFeedback(
-      $('trainFeedback'),
-      `✗ Falsch. Richtig wäre: ${expected}`,
-      false
-    );
-  }
-
-  S.training.answered = true;
-
-  $('trainButton').textContent =
-    'NÄCHSTER BUCHSTABE';
-
-  save();
-
-  renderTrainingStats();
-  renderTrainingGrid();
+    return pool[state.training.index];
 }
 
 
-// --------------------------------------------------
-// FEEDBACK
-// --------------------------------------------------
+function renderTraining() {
 
-function showFeedback(element, message, correct) {
+    const pool =
+        getTrainingPool();
 
-  element.textContent = message;
+    const prompt =
+        document.getElementById("trainingPrompt");
 
-  element.className =
-    'feedback ' +
-    (correct ? 'correct' : 'wrong');
-}
-
-
-// --------------------------------------------------
-// TRAINING STATISTIK
-// --------------------------------------------------
-
-function renderTrainingStats() {
-
-  const attempts = S.training.attempts;
-  const correct = S.training.correct;
-
-  const total =
-    DATA[S.training.mode].length;
-
-  $('score').textContent =
-    S.training.score;
-
-  $('correct').textContent =
-    correct;
-
-  $('attempts').textContent =
-    attempts;
-
-  $('accuracy').textContent =
-    attempts
-      ? Math.round(correct / attempts * 100) + '%'
-      : '0%';
-
-  $('progressText').textContent =
-    `${S.training.solved.length} / ${total}`;
-
-  $('progress').style.width =
-    Math.min(
-      100,
-      S.training.solved.length / total * 100
-    ) + '%';
-}
-
-
-// --------------------------------------------------
-// TRAINING TABELLE
-// --------------------------------------------------
-
-function renderTrainingGrid() {
-
-  const list = DATA[S.training.mode];
-
-  $('alphabetGrid').innerHTML =
-    list.map((item, index) => {
-
-      const learned =
-        S.training.solved.includes(item[0]);
-
-      const error =
-        Boolean(S.training.errors[item[0]]);
-
-      const streak =
-        S.training.streaks[item[0]] || 0;
-
-      return `
-        <button
-          class="
-            ${learned ? 'done' : ''}
-            ${error ? 'has-error' : ''}
-          "
-          data-ti="${index}">
-
-          <b>${item[0]}</b>
-
-          <small>${item[1]}</small>
-
-          ${
-            error
-              ? `<em>${streak}/3</em>`
-              : ''
-          }
-
-        </button>
-      `;
-    }).join('');
-
-  document.querySelectorAll('[data-ti]').forEach(button => {
-
-    button.onclick = () => {
-
-      S.training.source = 'all';
-
-      S.training.index =
-        Number(button.dataset.ti);
-
-      S.training.answered = false;
-
-      renderTrain();
-    };
-
-  });
-}
-
-
-// --------------------------------------------------
-// PRÜFUNG
-// --------------------------------------------------
-
-function readExam() {
-
-  const mode =
-    document.querySelector(
-      '[name=examMode]:checked'
-    );
-
-  const order =
-    document.querySelector(
-      '[name=examOrder]:checked'
-    );
-
-  const direction =
-    document.querySelector(
-      '[name=examDir]:checked'
-    );
-
-  if (mode) {
-    exam.mode = mode.value;
-  }
-
-  if (order) {
-    exam.order = order.value;
-  }
-
-  if (direction) {
-    exam.direction = direction.value;
-  }
-
-  const custom =
-    parseInt($('customCount')?.value || 0);
-
-  if (custom > 0) {
-
-    exam.count =
-      Math.min(30, custom);
-
-  } else {
+    const input =
+        document.getElementById("trainingInput");
 
     const button =
-      document.querySelector('.num.active');
+        document.getElementById("trainingAnswerBtn");
+
+    const feedback =
+        document.getElementById("trainingFeedback");
+
+    const modeLabel =
+        document.getElementById("trainingModeLabel");
+
+    const directionLabel =
+        document.getElementById("trainingDirectionLabel");
+
+    const progress =
+        document.getElementById("trainingProgress");
+
+    const errorBadge =
+        document.getElementById("trainingErrorBadge");
+
+    const score =
+        document.getElementById("trainingScore");
+
+    const correct =
+        document.getElementById("trainingCorrect");
+
+    const attempts =
+        document.getElementById("trainingAttempts");
+
+
+    // Richtung immer fest setzen
+    state.training.direction = "letter";
+
+
+    if (modeLabel) {
+
+        modeLabel.textContent =
+            state.training.mode === "nato"
+                ? "NATO"
+                : "DEUTSCH";
+    }
+
+
+    if (directionLabel) {
+
+        directionLabel.textContent =
+            "BUCHSTABE → FUNKWORT";
+    }
+
+
+    if (score) {
+        score.textContent =
+            state.training.score;
+    }
+
+
+    if (correct) {
+        correct.textContent =
+            state.training.correct;
+    }
+
+
+    if (attempts) {
+        attempts.textContent =
+            state.training.attempts;
+    }
+
+
+    if (!pool.length) {
+
+        if (prompt) {
+            prompt.textContent =
+                "KEINE FEHLER VORHANDEN";
+        }
+
+        if (input) {
+            input.value = "";
+            input.disabled = true;
+        }
+
+        if (button) {
+            button.textContent = "TRAINING STARTEN";
+            button.disabled = false;
+        }
+
+        if (feedback) {
+            feedback.textContent =
+                "Du hast aktuell keine gespeicherten Fehler.";
+            feedback.className =
+                "training-feedback success";
+        }
+
+        if (errorBadge) {
+            errorBadge.textContent = "0 FEHLER";
+        }
+
+        if (progress) {
+            progress.style.width = "0%";
+        }
+
+        return;
+    }
+
+
+    const item =
+        getCurrentTrainingItem();
+
+    if (!item) return;
+
+
+    if (prompt) {
+
+        prompt.textContent =
+            item[0];
+    }
+
+
+    if (errorBadge) {
+
+        const count =
+            state.training.errors[item[0]] || 0;
+
+        const streak =
+            state.training.streaks[item[0]] || 0;
+
+        if (count > 0) {
+
+            errorBadge.textContent =
+                `FEHLER · ${streak}/3 RICHTIG`;
+
+            errorBadge.classList.add("visible");
+
+        } else {
+
+            errorBadge.textContent = "";
+            errorBadge.classList.remove("visible");
+        }
+    }
+
+
+    if (input) {
+
+        input.disabled = false;
+
+        if (!state.training.answered) {
+            input.value = "";
+        }
+
+        setTimeout(() => {
+            if (
+                document.activeElement !== input &&
+                !input.disabled
+            ) {
+                input.focus();
+            }
+        }, 50);
+    }
+
 
     if (button) {
 
-      exam.count =
-        button.dataset.all
-          ? 'all'
-          : Number(button.textContent);
+        button.disabled = false;
+
+        button.textContent =
+            state.training.answered
+                ? "NÄCHSTER BUCHSTABE"
+                : "ANTWORT PRÜFEN";
     }
-  }
 
-  summary();
+
+    if (feedback) {
+
+        if (!state.training.answered) {
+
+            feedback.textContent = "";
+            feedback.className =
+                "training-feedback";
+
+        }
+
+    }
+
+
+    if (progress) {
+
+        const percent =
+            ((state.training.index + 1) /
+                pool.length) * 100;
+
+        progress.style.width =
+            `${percent}%`;
+    }
 }
 
-function summary() {
 
-  const count =
-    exam.count === 'all'
-      ? DATA[exam.mode].length
-      : exam.count;
+function answerTraining() {
 
-  $('examSummary').textContent =
-    `${count} Fragen · ${
-      exam.mode === 'nato'
-        ? 'NATO'
-        : 'Deutsch'
-    } · ${
-      exam.order === 'random'
-        ? 'Zufällig'
-        : 'Alphabetisch'
-    }`;
+    const pool =
+        getTrainingPool();
+
+    if (!pool.length) {
+        return;
+    }
+
+
+    // Wenn bereits beantwortet wurde:
+    // zum nächsten Buchstaben.
+    if (state.training.answered) {
+
+        nextTrainingItem();
+
+        return;
+    }
+
+
+    const item =
+        getCurrentTrainingItem();
+
+    if (!item) return;
+
+
+    const input =
+        document.getElementById("trainingInput");
+
+    const feedback =
+        document.getElementById("trainingFeedback");
+
+    const answer =
+        normalize(input ? input.value : "");
+
+    const correctAnswer =
+        normalize(item[1]);
+
+
+    if (!answer) {
+
+        if (feedback) {
+
+            feedback.textContent =
+                "Bitte gib zuerst eine Antwort ein.";
+
+            feedback.className =
+                "training-feedback error";
+        }
+
+        if (input) {
+            input.focus();
+        }
+
+        return;
+    }
+
+
+    state.training.attempts++;
+
+
+    const isCorrect =
+        answer === correctAnswer;
+
+
+    if (state.training.mode === "nato") {
+
+        state.stats.natoAttempts++;
+
+    } else {
+
+        state.stats.deutschAttempts++;
+    }
+
+
+    if (isCorrect) {
+
+        state.training.correct++;
+        state.training.score += 10;
+
+
+        if (state.training.mode === "nato") {
+            state.stats.natoCorrect++;
+        } else {
+            state.stats.deutschCorrect++;
+        }
+
+
+        /*
+            3-MAL-REGEL
+
+            Nur Buchstabe -> Funkwort.
+
+            Ein Fehler wird erst gelöscht,
+            wenn derselbe Fehler 3x hintereinander
+            richtig beantwortet wurde.
+        */
+
+        if (
+            state.training.errors[item[0]]
+        ) {
+
+            let streak =
+                state.training.streaks[item[0]] || 0;
+
+            streak++;
+
+            state.training.streaks[item[0]] =
+                streak;
+
+
+            if (streak >= 3) {
+
+                delete state.training.errors[item[0]];
+                delete state.training.streaks[item[0]];
+
+                if (feedback) {
+
+                    feedback.textContent =
+                        `RICHTIG! ${item[1]} – Fehler gelernt und entfernt.`;
+
+                    feedback.className =
+                        "training-feedback success";
+                }
+
+            } else {
+
+                if (feedback) {
+
+                    feedback.textContent =
+                        `RICHTIG! ${streak}/3 richtige Antworten zum Entfernen des Fehlers.`;
+
+                    feedback.className =
+                        "training-feedback success";
+                }
+            }
+
+        } else {
+
+            if (feedback) {
+
+                feedback.textContent =
+                    `RICHTIG! ${item[1]}`;
+
+                feedback.className =
+                    "training-feedback success";
+            }
+        }
+
+
+        if (input) {
+            input.classList.add("correct");
+        }
+
+
+    } else {
+
+        /*
+            FALSCH:
+
+            Fehler speichern.
+            Streak wieder auf 0.
+        */
+
+        state.training.errors[item[0]] =
+            (state.training.errors[item[0]] || 0) + 1;
+
+        state.training.streaks[item[0]] = 0;
+
+
+        if (feedback) {
+
+            feedback.textContent =
+                `FALSCH! Richtig wäre: ${item[1]}`;
+
+            feedback.className =
+                "training-feedback error";
+        }
+
+
+        if (input) {
+            input.classList.add("wrong");
+        }
+    }
+
+
+    state.training.answered = true;
+
+    saveState();
+
+
+    const button =
+        document.getElementById("trainingAnswerBtn");
+
+    if (button) {
+
+        button.textContent =
+            "NÄCHSTER BUCHSTABE";
+    }
+
+
+    renderTrainingStatsOnly();
 }
+
+
+function nextTrainingItem() {
+
+    const pool =
+        getTrainingPool();
+
+    if (!pool.length) {
+
+        state.training.answered = false;
+
+        renderTraining();
+
+        return;
+    }
+
+
+    /*
+        Bei Fehlertraining kann ein Buchstabe
+        nach 3 richtigen Antworten aus der Liste
+        verschwunden sein.
+
+        Deshalb Index absichern.
+    */
+
+    if (
+        state.training.index >= pool.length - 1
+    ) {
+
+        state.training.index = 0;
+
+    } else {
+
+        state.training.index++;
+    }
+
+
+    state.training.answered = false;
+
+
+    const input =
+        document.getElementById("trainingInput");
+
+    if (input) {
+
+        input.value = "";
+
+        input.classList.remove(
+            "correct",
+            "wrong"
+        );
+    }
+
+
+    renderTraining();
+
+    saveState();
+}
+
+
+function renderTrainingStatsOnly() {
+
+    const score =
+        document.getElementById("trainingScore");
+
+    const correct =
+        document.getElementById("trainingCorrect");
+
+    const attempts =
+        document.getElementById("trainingAttempts");
+
+
+    if (score) {
+        score.textContent =
+            state.training.score;
+    }
+
+    if (correct) {
+        correct.textContent =
+            state.training.correct;
+    }
+
+    if (attempts) {
+        attempts.textContent =
+            state.training.attempts;
+    }
+}
+
+
+/* =========================================================
+   PRÜFUNG
+   ========================================================= */
+
+/*
+    DIE PRÜFUNG IST NUR:
+
+    BUCHSTABE -> FUNKWORT
+
+    Es gibt KEINE Möglichkeit mehr,
+    Funkwort -> Buchstabe auszuwählen.
+*/
+
+
+let exam = {
+    mode: "nato",
+
+    count: 10,
+
+    index: 0,
+
+    questions: [],
+
+    correct: 0,
+
+    wrong: 0,
+
+    started: false,
+
+    finished: false,
+
+    answered: false,
+
+    startTime: null,
+
+    answers: []
+};
+
+
+function renderExam() {
+
+    const setup =
+        document.getElementById("examSetup");
+
+    const area =
+        document.getElementById("examArea");
+
+    const result =
+        document.getElementById("examResult");
+
+
+    if (result) {
+        result.style.display = "none";
+    }
+
+
+    if (area) {
+        area.style.display =
+            exam.started && !exam.finished
+                ? "block"
+                : "none";
+    }
+
+
+    if (setup) {
+        setup.style.display =
+            exam.started
+                ? "none"
+                : "block";
+    }
+
+
+    if (
+        exam.started &&
+        !exam.finished
+    ) {
+
+        renderExamQuestion();
+    }
+}
+
 
 function startExam() {
 
-  readExam();
+    const modeSelect =
+        document.getElementById("examMode");
 
-  let list = [
-    ...DATA[exam.mode]
-  ];
+    const countSelect =
+        document.getElementById("examCount");
 
-  /*
-   * Prüfung kann weiterhin beide Richtungen nutzen.
-   * Das 3x-Fehler-System gilt jedoch ausschließlich
-   * für Buchstabe → Funkwort.
-   */
 
-  if (exam.order === 'random') {
-    list.sort(() => Math.random() - 0.5);
-  }
-
-  questions =
-    list.slice(
-      0,
-      exam.count === 'all'
-        ? list.length
-        : exam.count
-    );
-
-  qi = 0;
-  qcorrect = 0;
-  qerrors = [];
-  qstart = Date.now();
-
-  $('examSetup').classList.add('hidden');
-  $('examResult').classList.add('hidden');
-  $('examRun').classList.remove('hidden');
-
-  clearInterval(timer);
-
-  timer = setInterval(() => {
-
-    $('timer').textContent =
-      time(
-        Math.floor(
-          (Date.now() - qstart) / 1000
-        )
-      );
-
-  }, 500);
-
-  showQuestion();
-}
-
-function showQuestion() {
-
-  const item = questions[qi];
-
-  const reverse =
-    exam.direction === 'word';
-
-  $('examNum').textContent =
-    `FRAGE ${
-      String(qi + 1).padStart(2, '0')
-    } / ${questions.length}`;
-
-  $('examBar').style.width =
-    qi / questions.length * 100 + '%';
-
-  $('examDir').textContent =
-    reverse
-      ? 'FUNKWORT → BUCHSTABE'
-      : 'BUCHSTABE → FUNKWORT';
-
-  $('examPrompt').textContent =
-    reverse
-      ? item[1]
-      : item[0];
-
-  $('examQuestion').textContent =
-    reverse
-      ? 'Welcher Buchstabe gehört dazu?'
-      : 'Wie lautet das passende Funkwort?';
-
-  $('examAnswer').value = '';
-
-  $('examFeedback').className =
-    'feedback';
-
-  setTimeout(() => {
-    $('examAnswer')?.focus();
-  }, 20);
-}
-
-function answerExam(event) {
-
-  event.preventDefault();
-
-  const item = questions[qi];
-
-  const reverse =
-    exam.direction === 'word';
-
-  const answer =
-    norm($('examAnswer').value);
-
-  const expected =
-    reverse
-      ? item[0]
-      : item[1];
-
-  if (!answer) {
-
-    showFeedback(
-      $('examFeedback'),
-      'Bitte gib eine Antwort ein.',
-      false
-    );
-
-    return;
-  }
-
-  if (answer === norm(expected)) {
-
-    qcorrect++;
-
-    showFeedback(
-      $('examFeedback'),
-      '✓ Richtig!',
-      true
-    );
-
-  } else {
-
-    qerrors.push(item);
-
-    showFeedback(
-      $('examFeedback'),
-      `✗ Falsch. Richtig: ${expected}`,
-      false
-    );
-  }
-
-  setTimeout(() => {
-
-    qi++;
-
-    if (qi >= questions.length) {
-      finishExam();
-    } else {
-      showQuestion();
+    if (modeSelect) {
+        exam.mode =
+            modeSelect.value || "nato";
     }
 
-  }, 300);
+
+    if (countSelect) {
+        exam.count =
+            parseInt(
+                countSelect.value,
+                10
+            ) || 10;
+    }
+
+
+    const data =
+        getData(exam.mode);
+
+
+    exam.questions =
+        [...data]
+            .sort(() => Math.random() - 0.5)
+            .slice(
+                0,
+                Math.min(
+                    exam.count,
+                    data.length
+                )
+            );
+
+
+    exam.index = 0;
+    exam.correct = 0;
+    exam.wrong = 0;
+    exam.answers = [];
+
+    exam.started = true;
+    exam.finished = false;
+    exam.answered = false;
+
+    exam.startTime =
+        Date.now();
+
+
+    renderExam();
 }
+
+
+function renderExamQuestion() {
+
+    const question =
+        document.getElementById("examQuestion");
+
+    const input =
+        document.getElementById("examInput");
+
+    const feedback =
+        document.getElementById("examFeedback");
+
+    const button =
+        document.getElementById("examAnswerBtn");
+
+    const progress =
+        document.getElementById("examProgress");
+
+    const counter =
+        document.getElementById("examCounter");
+
+
+    const item =
+        exam.questions[exam.index];
+
+
+    if (!item) {
+        finishExam();
+        return;
+    }
+
+
+    if (question) {
+        question.textContent =
+            item[0];
+    }
+
+
+    if (input) {
+
+        input.value = "";
+        input.disabled = false;
+
+        input.classList.remove(
+            "correct",
+            "wrong"
+        );
+
+        setTimeout(() => {
+            input.focus();
+        }, 50);
+    }
+
+
+    if (feedback) {
+
+        feedback.textContent = "";
+        feedback.className =
+            "exam-feedback";
+    }
+
+
+    if (button) {
+
+        button.textContent =
+            "ANTWORT PRÜFEN";
+
+        button.disabled = false;
+    }
+
+
+    if (counter) {
+
+        counter.textContent =
+            `${exam.index + 1} / ${exam.questions.length}`;
+    }
+
+
+    if (progress) {
+
+        const percent =
+            (exam.index /
+                exam.questions.length) * 100;
+
+        progress.style.width =
+            `${percent}%`;
+    }
+
+
+    exam.answered = false;
+}
+
+
+function answerExam() {
+
+    if (exam.answered) {
+
+        exam.index++;
+
+        if (
+            exam.index >=
+            exam.questions.length
+        ) {
+
+            finishExam();
+
+        } else {
+
+            renderExamQuestion();
+        }
+
+        return;
+    }
+
+
+    const item =
+        exam.questions[exam.index];
+
+    if (!item) return;
+
+
+    const input =
+        document.getElementById("examInput");
+
+    const feedback =
+        document.getElementById("examFeedback");
+
+    const answer =
+        normalize(
+            input ? input.value : ""
+        );
+
+    const correctAnswer =
+        normalize(item[1]);
+
+
+    if (!answer) {
+
+        if (feedback) {
+
+            feedback.textContent =
+                "Bitte gib zuerst eine Antwort ein.";
+
+            feedback.className =
+                "exam-feedback error";
+        }
+
+        return;
+    }
+
+
+    const correct =
+        answer === correctAnswer;
+
+
+    exam.answered = true;
+
+
+    if (correct) {
+
+        exam.correct++;
+
+        if (input) {
+            input.classList.add("correct");
+        }
+
+        if (feedback) {
+
+            feedback.textContent =
+                `RICHTIG! ${item[1]}`;
+
+            feedback.className =
+                "exam-feedback success";
+        }
+
+    } else {
+
+        exam.wrong++;
+
+        if (input) {
+            input.classList.add("wrong");
+        }
+
+        if (feedback) {
+
+            feedback.textContent =
+                `FALSCH! Richtig wäre: ${item[1]}`;
+
+            feedback.className =
+                "exam-feedback error";
+        }
+    }
+
+
+    exam.answers.push({
+        letter: item[0],
+        correctAnswer: item[1],
+        userAnswer: answer,
+        correct
+    });
+
+
+    if (input) {
+        input.disabled = true;
+    }
+
+
+    const button =
+        document.getElementById("examAnswerBtn");
+
+    if (button) {
+
+        button.textContent =
+            exam.index + 1 >= exam.questions.length
+                ? "ERGEBNIS ANZEIGEN"
+                : "NÄCHSTE FRAGE";
+    }
+}
+
 
 function finishExam() {
 
-  clearInterval(timer);
+    exam.finished = true;
+    exam.started = false;
 
-  const seconds =
-    Math.floor(
-      (Date.now() - qstart) / 1000
-    );
 
-  const percentage =
-    Math.round(
-      qcorrect /
-      questions.length *
-      100
-    );
+    const duration =
+        exam.startTime
+            ? Math.round(
+                (Date.now() - exam.startTime) / 1000
+            )
+            : 0;
 
-  S.stats.exams++;
 
-  S.stats.history.unshift({
+    state.stats.exams++;
 
-    date:
-      new Date()
-        .toLocaleDateString('de-DE'),
 
-    mode:
-      exam.mode === 'nato'
-        ? 'NATO'
-        : 'Deutsch',
+    /*
+        Prüfungsfehler werden ins Training
+        übernommen.
 
-    score: qcorrect,
+        Auch hier ausschließlich
+        Buchstabe -> Funkwort.
+    */
 
-    total: questions.length,
+    exam.answers
+        .filter(answer => !answer.correct)
+        .forEach(answer => {
 
-    pct: percentage,
+            state.training.errors[answer.letter] =
+                (state.training.errors[answer.letter] || 0) + 1;
 
-    time: time(seconds)
-  });
+            state.training.streaks[answer.letter] = 0;
+        });
 
-  S.stats.history =
-    S.stats.history.slice(0, 10);
 
-  /*
-   * Fehler aus der Prüfung werden nur
-   * für Buchstabe → Funkwort in das
-   * 3x-Lernsystem übernommen.
-   */
+    const percent =
+        exam.questions.length
+            ? Math.round(
+                (exam.correct /
+                    exam.questions.length) * 100
+            )
+            : 0;
 
-  if (exam.direction === 'letter') {
 
-    qerrors.forEach(item => {
-
-      S.training.errors[item[0]] =
-        (S.training.errors[item[0]] || 0) + 1;
-
-      S.training.streaks[item[0]] = 0;
-
+    state.stats.history.push({
+        date: new Date().toISOString(),
+        mode: exam.mode,
+        total: exam.questions.length,
+        correct: exam.correct,
+        wrong: exam.wrong,
+        percent,
+        duration
     });
-  }
 
-  save();
 
-  $('examRun').classList.add('hidden');
-  $('examResult').classList.remove('hidden');
+    if (
+        state.stats.history.length > 30
+    ) {
 
-  $('resultScore').textContent =
-    `${qcorrect} / ${questions.length}`;
+        state.stats.history =
+            state.stats.history.slice(-30);
+    }
 
-  $('resultPercent').textContent =
-    percentage + '%';
 
-  $('resultTime').textContent =
-    'Zeit: ' + time(seconds);
+    saveState();
 
-  $('resultBar').style.width =
-    percentage + '%';
 
-  $('resultErrors').innerHTML =
-    qerrors.length
+    const setup =
+        document.getElementById("examSetup");
 
-      ? qerrors.map(item => `
-          <span class="error-item">
-            ${item[0]} = ${item[1]}
-          </span>
-        `).join('')
+    const area =
+        document.getElementById("examArea");
 
-      : '<span style="color:var(--g)">✓ Keine Fehler</span>';
+    const result =
+        document.getElementById("examResult");
 
-  $('resultMessage').textContent =
-    percentage === 100
-      ? 'Perfekt. Alle Fragen richtig!'
-      : percentage >= 90
-        ? 'Sehr starke Leistung.'
-        : percentage >= 75
-          ? 'Gute Leistung. Weiter üben bringt noch mehr Sicherheit.'
-          : 'Weiter üben und erneut versuchen.';
+
+    if (setup) {
+        setup.style.display = "none";
+    }
+
+    if (area) {
+        area.style.display = "none";
+    }
+
+
+    if (result) {
+
+        result.style.display =
+            "block";
+
+
+        const resultPercent =
+            document.getElementById(
+                "examResultPercent"
+            );
+
+        const resultCorrect =
+            document.getElementById(
+                "examResultCorrect"
+            );
+
+        const resultWrong =
+            document.getElementById(
+                "examResultWrong"
+            );
+
+        const resultTime =
+            document.getElementById(
+                "examResultTime"
+            );
+
+
+        if (resultPercent) {
+            resultPercent.textContent =
+                `${percent}%`;
+        }
+
+        if (resultCorrect) {
+            resultCorrect.textContent =
+                exam.correct;
+        }
+
+        if (resultWrong) {
+            resultWrong.textContent =
+                exam.wrong;
+        }
+
+        if (resultTime) {
+            resultTime.textContent =
+                `${duration}s`;
+        }
+    }
 }
 
-function resetExam() {
 
-  clearInterval(timer);
+/* =========================================================
+   FEHLER LERNEN
+   ========================================================= */
 
-  $('examRun').classList.add('hidden');
-  $('examResult').classList.add('hidden');
-  $('examSetup').classList.remove('hidden');
+function startErrorTraining() {
 
-  summary();
+    const errors =
+        Object.keys(
+            state.training.errors
+        );
+
+
+    if (!errors.length) {
+
+        alert(
+            "Du hast aktuell keine Fehler zum Lernen."
+        );
+
+        return;
+    }
+
+
+    /*
+        GANZ WICHTIG:
+
+        Fehlertraining immer
+        Buchstabe -> Funkwort.
+    */
+
+    state.training.direction =
+        "letter";
+
+    state.training.source =
+        "errors";
+
+    state.training.index =
+        0;
+
+    state.training.answered =
+        false;
+
+
+    showPage("training");
+
+    renderTraining();
 }
 
 
-// --------------------------------------------------
-// STATISTIK
-// --------------------------------------------------
+/* =========================================================
+   NEUES TRAINING
+   ========================================================= */
+
+function startNormalTraining() {
+
+    state.training.source =
+        "all";
+
+    state.training.index =
+        0;
+
+    state.training.direction =
+        "letter";
+
+    state.training.answered =
+        false;
+
+
+    const input =
+        document.getElementById(
+            "trainingInput"
+        );
+
+    if (input) {
+        input.value = "";
+    }
+
+
+    renderTraining();
+}
+
+
+/* =========================================================
+   MODUS WECHSEL
+   ========================================================= */
+
+function changeTrainingMode(mode) {
+
+    state.training.mode =
+        mode === "deutsch"
+            ? "deutsch"
+            : "nato";
+
+    state.training.index = 0;
+
+    state.training.answered = false;
+
+    state.training.direction =
+        "letter";
+
+    renderTraining();
+
+    saveState();
+}
+
+
+/* =========================================================
+   STATISTIK
+   ========================================================= */
 
 function renderStats() {
 
-  const stats = S.stats;
+    const page =
+        document.getElementById("statsPage");
 
-  const attempts =
-    stats.natoAttempts +
-    stats.deutschAttempts;
+    if (!page) return;
 
-  const correct =
-    stats.natoCorrect +
-    stats.deutschCorrect;
 
-  $('stAttempts').textContent =
-    attempts;
+    const natoAttempts =
+        document.getElementById(
+            "statsNatoAttempts"
+        );
 
-  $('stCorrect').textContent =
-    correct;
+    const natoCorrect =
+        document.getElementById(
+            "statsNatoCorrect"
+        );
 
-  $('stAccuracy').textContent =
-    attempts
-      ? Math.round(correct / attempts * 100) + '%'
-      : '0%';
+    const deutschAttempts =
+        document.getElementById(
+            "statsDeutschAttempts"
+        );
 
-  $('stExams').textContent =
-    stats.exams;
+    const deutschCorrect =
+        document.getElementById(
+            "statsDeutschCorrect"
+        );
 
-  const nato =
-    stats.natoAttempts
-      ? Math.round(
-          stats.natoCorrect /
-          stats.natoAttempts *
-          100
-        )
-      : 0;
+    const exams =
+        document.getElementById(
+            "statsExams"
+        );
 
-  const deutsch =
-    stats.deutschAttempts
-      ? Math.round(
-          stats.deutschCorrect /
-          stats.deutschAttempts *
-          100
-        )
-      : 0;
+    const errors =
+        document.getElementById(
+            "statsErrors"
+        );
 
-  $('natoPct').textContent =
-    nato + '%';
 
-  $('dePct').textContent =
-    deutsch + '%';
-
-  $('natoBar').style.width =
-    nato + '%';
-
-  $('deBar').style.width =
-    deutsch + '%';
-
-  $('history').innerHTML =
-    stats.history.length
-
-      ? stats.history.map(item => `
-          <p>
-            ${item.date}
-            · ${item.mode}
-            · ${item.time}
-
-            <b style="float:right">
-              ${item.score}/${item.total}
-              (${item.pct}%)
-            </b>
-          </p>
-        `).join('')
-
-      : 'Noch keine Prüfungen absolviert.';
-
-  const errors =
-    Object.keys(S.training.errors);
-
-  $('errors').innerHTML =
-    errors.length
-
-      ? errors.map(letter => {
-
-          const item =
-            [...DATA.nato, ...DATA.deutsch]
-              .find(x => x[0] === letter);
-
-          const streak =
-            S.training.streaks[letter] || 0;
-
-          return `
-            <div class="error-item">
-
-              <b>${letter}</b>
-
-              <small>
-                ${item ? item[1] : ''}
-              </small>
-
-              <small>
-                ${streak}/3 richtig
-              </small>
-
-            </div>
-          `;
-
-        }).join('')
-
-      : `
-        <span style="color:var(--muted)">
-          Keine offenen Fehler.
-        </span>
-      `;
-}
-
-
-// --------------------------------------------------
-// EVENTS
-// --------------------------------------------------
-
-function bind() {
-
-  document.querySelectorAll('.nav').forEach(button => {
-
-    button.onclick = () => {
-      page(button.dataset.page);
-    };
-
-  });
-
-  document.querySelectorAll('[data-go]').forEach(button => {
-
-    button.onclick = () => {
-      page(button.dataset.go);
-    };
-
-  });
-
-  document.querySelectorAll('[data-learn]').forEach(button => {
-
-    button.onclick = () => {
-
-      learnMode =
-        button.dataset.learn;
-
-      learnIndex = 0;
-
-      renderLearn();
-    };
-
-  });
-
-  $('learnPrev').onclick = () => {
-
-    learnIndex =
-      (
-        learnIndex -
-        1 +
-        DATA[learnMode].length
-      ) %
-      DATA[learnMode].length;
-
-    renderLearn();
-  };
-
-  $('learnNext').onclick = () => {
-
-    learnIndex =
-      (
-        learnIndex +
-        1
-      ) %
-      DATA[learnMode].length;
-
-    renderLearn();
-  };
-
-  $('learnSpeak').onclick = () => {
-
-    speak(
-      DATA[learnMode][learnIndex][1]
-    );
-  };
-
-
-  // Training
-
-  document.querySelectorAll('[data-train]').forEach(button => {
-
-    button.onclick = () => {
-
-      S.training.mode =
-        button.dataset.train;
-
-      S.training.index = 0;
-      S.training.source = 'all';
-      S.training.answered = false;
-
-      save();
-
-      renderTrain();
-    };
-
-  });
-
-  document.querySelectorAll('[data-source]').forEach(button => {
-
-    button.onclick = () => {
-
-      S.training.source =
-        button.dataset.source;
-
-      S.training.index = 0;
-      S.training.answered = false;
-
-      renderTrain();
-    };
-
-  });
-
-  $('direction').onclick = () => {
-
-    S.training.direction =
-      S.training.direction === 'letter'
-        ? 'word'
-        : 'letter';
-
-    S.training.index = 0;
-    S.training.answered = false;
-
-    save();
-
-    renderTrain();
-  };
-
-  $('trainForm').onsubmit =
-    answerTrain;
-
-  $('resetTraining').onclick = () => {
-
-    S.training.score = 0;
-    S.training.correct = 0;
-    S.training.attempts = 0;
-    S.training.solved = [];
-    S.training.errors = {};
-    S.training.streaks = {};
-    S.training.index = 0;
-
-    save();
-
-    renderTrain();
-  };
-
-
-  // Prüfung
-
-  document
-    .querySelectorAll(
-      '[name=examMode],[name=examOrder],[name=examDir]'
-    )
-    .forEach(input => {
-
-      input.onchange =
-        readExam;
-
-    });
-
-  document.querySelectorAll('.num').forEach(button => {
-
-    button.onclick = () => {
-
-      document
-        .querySelectorAll('.num')
-        .forEach(x => {
-          x.classList.remove('active');
-        });
-
-      button.classList.add('active');
-
-      if ($('customCount')) {
-        $('customCount').value = '';
-      }
-
-      summary();
-    };
-
-  });
-
-  if ($('customCount')) {
-
-    $('customCount').oninput = () => {
-
-      document
-        .querySelectorAll('.num')
-        .forEach(x => {
-          x.classList.remove('active');
-        });
-
-      summary();
-    };
-  }
-
-  $('startExam').onclick =
-    startExam;
-
-  $('examForm').onsubmit =
-    answerExam;
-
-  $('retry').onclick =
-    resetExam;
-
-  $('errorTraining').onclick = () => {
-
-    S.training.mode =
-      exam.mode;
-
-    /*
-     * Fehlertraining immer:
-     * Buchstabe → Funkwort
-     */
-
-    S.training.direction =
-      'letter';
-
-    S.training.source =
-      'errors';
-
-    S.training.index = 0;
-
-    save();
-
-    page('training');
-  };
-
-
-  // Statistik löschen
-
-  $('clearStats').onclick = () => {
-
-    if (!confirm(
-      'Alle Statistiken und Fehler löschen?'
-    )) {
-      return;
+    if (natoAttempts) {
+        natoAttempts.textContent =
+            state.stats.natoAttempts;
     }
 
-    S.stats = {
+    if (natoCorrect) {
+        natoCorrect.textContent =
+            state.stats.natoCorrect;
+    }
 
-      natoAttempts: 0,
-      natoCorrect: 0,
+    if (deutschAttempts) {
+        deutschAttempts.textContent =
+            state.stats.deutschAttempts;
+    }
 
-      deutschAttempts: 0,
-      deutschCorrect: 0,
+    if (deutschCorrect) {
+        deutschCorrect.textContent =
+            state.stats.deutschCorrect;
+    }
 
-      exams: 0,
+    if (exams) {
+        exams.textContent =
+            state.stats.exams;
+    }
 
-      history: []
-    };
+    if (errors) {
+        errors.textContent =
+            Object.keys(
+                state.training.errors
+            ).length;
+    }
 
-    S.training.score = 0;
-    S.training.correct = 0;
-    S.training.attempts = 0;
-    S.training.solved = [];
-    S.training.errors = {};
-    S.training.streaks = {};
 
-    save();
-
-    renderStats();
-    renderTrain();
-  };
+    renderErrorList();
 }
 
 
-// --------------------------------------------------
-// START
-// --------------------------------------------------
+function renderErrorList() {
 
-load();
+    const container =
+        document.getElementById(
+            "statsErrorList"
+        );
 
-bind();
+    if (!container) return;
 
-renderLearn();
 
-renderTrain();
+    const errorKeys =
+        Object.keys(
+            state.training.errors
+        );
 
-renderStats();
 
-summary();
+    if (!errorKeys.length) {
+
+        container.innerHTML = `
+            <div class="empty-state">
+                Keine Fehler gespeichert.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    const data =
+        getData(state.training.mode);
+
+
+    container.innerHTML = "";
+
+
+    errorKeys.forEach(letter => {
+
+        const item =
+            data.find(
+                entry =>
+                    entry[0] === letter
+            );
+
+
+        if (!item) return;
+
+
+        const errorCount =
+            state.training.errors[letter] || 0;
+
+        const streak =
+            state.training.streaks[letter] || 0;
+
+
+        const row =
+            document.createElement("div");
+
+        row.className =
+            "error-row";
+
+
+        row.innerHTML = `
+            <div>
+                <strong>${item[0]}</strong>
+                <span>${item[1]}</span>
+            </div>
+
+            <div class="error-row-right">
+                <span>${errorCount} Fehler</span>
+                <span>${streak}/3</span>
+            </div>
+        `;
+
+
+        container.appendChild(row);
+    });
+}
+
+
+/* =========================================================
+   EVENT LISTENER
+   ========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        loadState();
+
+
+        /* Navigation */
+
+        document
+            .querySelectorAll(".nav-btn")
+            .forEach(button => {
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        showPage(
+                            button.dataset.page
+                        );
+                    }
+                );
+            });
+
+
+        /* Alle data-page Buttons */
+
+        document
+            .querySelectorAll(
+                "[data-page]"
+            )
+            .forEach(button => {
+
+                if (
+                    button.classList.contains(
+                        "nav-btn"
+                    )
+                ) {
+                    return;
+                }
+
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        showPage(
+                            button.dataset.page
+                        );
+                    }
+                );
+            });
+
+
+        /* Lernen */
+
+        document
+            .querySelectorAll(
+                "[data-learn-mode]"
+            )
+            .forEach(button => {
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        document
+                            .querySelectorAll(
+                                "[data-learn-mode]"
+                            )
+                            .forEach(btn =>
+                                btn.classList.remove(
+                                    "active"
+                                )
+                            );
+
+
+                        button.classList.add(
+                            "active"
+                        );
+
+
+                        learnMode =
+                            button.dataset.learnMode;
+
+
+                        renderLearn();
+                    }
+                );
+            });
+
+
+        /* Training Mode */
+
+        document
+            .querySelectorAll(
+                "[data-training-mode]"
+            )
+            .forEach(button => {
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        document
+                            .querySelectorAll(
+                                "[data-training-mode]"
+                            )
+                            .forEach(btn =>
+                                btn.classList.remove(
+                                    "active"
+                                )
+                            );
+
+
+                        button.classList.add(
+                            "active"
+                        );
+
+
+                        changeTrainingMode(
+                            button.dataset.trainingMode
+                        );
+                    }
+                );
+            });
+
+
+        /* Training */
+
+        const trainingButton =
+            document.getElementById(
+                "trainingAnswerBtn"
+            );
+
+
+        if (trainingButton) {
+
+            trainingButton.addEventListener(
+                "click",
+                answerTraining
+            );
+        }
+
+
+        const trainingInput =
+            document.getElementById(
+                "trainingInput"
+            );
+
+
+        if (trainingInput) {
+
+            trainingInput.addEventListener(
+                "keydown",
+                event => {
+
+                    if (
+                        event.key === "Enter"
+                    ) {
+
+                        event.preventDefault();
+
+                        answerTraining();
+                    }
+                }
+            );
+        }
+
+
+        /* Neues Training */
+
+        const normalTrainingButton =
+            document.getElementById(
+                "normalTrainingBtn"
+            );
+
+
+        if (normalTrainingButton) {
+
+            normalTrainingButton.addEventListener(
+                "click",
+                startNormalTraining
+            );
+        }
+
+
+        /* Fehler lernen */
+
+        const errorTrainingButton =
+            document.getElementById(
+                "errorTrainingBtn"
+            );
+
+
+        if (errorTrainingButton) {
+
+            errorTrainingButton.addEventListener(
+                "click",
+                startErrorTraining
+            );
+        }
+
+
+        /* Prüfung */
+
+        const startExamButton =
+            document.getElementById(
+                "startExamBtn"
+            );
+
+
+        if (startExamButton) {
+
+            startExamButton.addEventListener(
+                "click",
+                startExam
+            );
+        }
+
+
+        const examButton =
+            document.getElementById(
+                "examAnswerBtn"
+            );
+
+
+        if (examButton) {
+
+            examButton.addEventListener(
+                "click",
+                answerExam
+            );
+        }
+
+
+        const examInput =
+            document.getElementById(
+                "examInput"
+            );
+
+
+        if (examInput) {
+
+            examInput.addEventListener(
+                "keydown",
+                event => {
+
+                    if (
+                        event.key === "Enter"
+                    ) {
+
+                        event.preventDefault();
+
+                        answerExam();
+                    }
+                }
+            );
+        }
+
+
+        /* Prüfung wiederholen */
+
+        const repeatExam =
+            document.getElementById(
+                "repeatExamBtn"
+            );
+
+
+        if (repeatExam) {
+
+            repeatExam.addEventListener(
+                "click",
+                () => {
+
+                    exam.started = false;
+                    exam.finished = false;
+
+                    renderExam();
+                }
+            );
+        }
+
+
+        /* Fehler aus Prüfung lernen */
+
+        const examErrorTraining =
+            document.getElementById(
+                "examErrorTrainingBtn"
+            );
+
+
+        if (examErrorTraining) {
+
+            examErrorTraining.addEventListener(
+                "click",
+                startErrorTraining
+            );
+        }
+
+
+        /* Start */
+
+        renderLearn();
+        renderTraining();
+        renderExam();
+        renderStats();
+
+    }
+);
